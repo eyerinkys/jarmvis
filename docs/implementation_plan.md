@@ -32,7 +32,7 @@
   - `send_face(state: str, pupil_x: int = 0, pupil_y: int = 0) -> bool`
   - `close() -> None`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_serial_bridge.py
@@ -70,12 +70,12 @@ def test_serial_connected_sends_json():
         assert packet["speed"] == 40
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_serial_bridge.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis')
 
-- [ ] **Step 3: Implement `pyproject.toml` and `SerialBridge`**
+- [x] **Step 3: Implement `pyproject.toml` and `SerialBridge`**
 
 Create `pyproject.toml`:
 ```toml
@@ -189,12 +189,12 @@ class SerialBridge:
             self.serial.close()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_serial_bridge.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pyproject.toml src/ tests/
