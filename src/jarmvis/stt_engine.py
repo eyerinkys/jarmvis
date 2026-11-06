@@ -1,7 +1,29 @@
+import os
+import contextlib
 import logging
 import numpy as np
 
 logger = logging.getLogger("jarmvis.stt")
+
+@contextlib.contextmanager
+def _suppress_output():
+    """Suppresses C-level and Python-level stdout/stderr (e.g. HuggingFace / tqdm bars)."""
+    try:
+        null_fd = os.open(os.devnull, os.O_RDWR)
+        old_stdout = os.dup(1)
+        old_stderr = os.dup(2)
+        os.dup2(null_fd, 1)
+        os.dup2(null_fd, 2)
+        try:
+            yield
+        finally:
+            os.dup2(old_stdout, 1)
+            os.dup2(old_stderr, 2)
+            os.close(null_fd)
+            os.close(old_stdout)
+            os.close(old_stderr)
+    except Exception:
+        yield
 
 class STTEngine:
     """Apple Silicon Metal accelerated Speech-to-Text using mlx-whisper."""
@@ -26,11 +48,12 @@ class STTEngine:
 
         try:
             import mlx_whisper
-            result = mlx_whisper.transcribe(
-                audio_data,
-                path_or_hf_repo=self.model_name,
-                verbose=False
-            )
+            with _suppress_output():
+                result = mlx_whisper.transcribe(
+                    audio_data,
+                    path_or_hf_repo=self.model_name,
+                    verbose=False
+                )
             raw_text = result.get("text", "").strip()
             logger.info(f"MLX-Whisper transcribed: '{raw_text}'")
             return raw_text

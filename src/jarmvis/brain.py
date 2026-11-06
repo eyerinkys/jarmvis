@@ -98,6 +98,19 @@ def _normalize_response(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _get_ssl_context():
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        pass
+    try:
+        return ssl.create_default_context()
+    except Exception:
+        return ssl._create_unverified_context()
+
+
 class JarvisBrain:
     """JARVIS LLM Mind with Dum-E physical embodiment and structured emotion parsing."""
 
@@ -189,7 +202,7 @@ class JarvisBrain:
                 method="POST"
             )
             try:
-                with urllib.request.urlopen(req, timeout=self.timeout + 4.0) as response:
+                with urllib.request.urlopen(req, timeout=self.timeout + 4.0, context=_get_ssl_context()) as response:
                     body = response.read().decode("utf-8")
                     res_json = json.loads(body)
                     choices = res_json.get("choices", [])
@@ -224,7 +237,7 @@ class JarvisBrain:
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=self.timeout + 3.0) as response:
+        with urllib.request.urlopen(req, timeout=self.timeout + 3.0, context=_get_ssl_context()) as response:
             body = response.read().decode("utf-8")
             res_json = json.loads(body)
             candidates = res_json.get("candidates", [])
