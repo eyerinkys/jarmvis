@@ -37,14 +37,14 @@ Because physical 3D printing and electronic component delivery occur later in th
                                                              ▼ (Serial JSON Protocol @ 115200)
                                             ┌────────────────┴────────────────┐
                                             │                                 │
-                                    (During Development)              (When Parts Arrive)
+                                   (--dry-run / No Hardware)          (Hardware Connected)
                                             │                                 │
                                             ▼                                 ▼
                          ┌──────────────────────────────────────┐  ┌─────────────────────────────────────┐
-                         │      VIRTUAL HARDWARE EMULATOR       │  │           ESP32 CONTROLLER          │
-                         │  • Terminal / 2D ASCII Arm Renderer  │  │  • 6x LEDC Hardware PWM Channels    │
-                         │  • Pygame / Matplotlib Joint Angles  │  │  • S-Curve + Spring Easing Engine   │
-                         │  • Virtual 128x64 OLED Face Window   │  │  • FreeRTOS Dual Core (OLED + PWM)  │
+                         │       TERMINAL CONSOLE LOGGER        │  │           ESP32 CONTROLLER          │
+                         │  • Prints instant reflex triggers    │  │  • 6x LEDC Hardware PWM Channels    │
+                         │  • Prints real-time joint angles     │  │  • S-Curve + Spring Easing Engine   │
+                         │  • Prints active OLED face state     │  │  • FreeRTOS Dual Core (OLED + PWM)  │
                          └──────────────────────────────────────┘  │  • SSD1306 128x64 I2C OLED Display │
                                                                    └──────────────────┬──────────────────┘
                                                                                       │
@@ -61,7 +61,7 @@ Because physical 3D printing and electronic component delivery occur later in th
 
 ## 3. Communication Protocol (The Hardware/Software Contract)
 
-The laptop and microcontroller communicate over USB Serial (115200 baud, 8N1) via newline-delimited JSON strings (`\n`).
+The laptop and microcontroller communicate over USB Serial (115200 baud, 8N1) via newline-delimited JSON strings (`\n`). In `--dry-run` mode (when no ESP32 is plugged into the Mac), the Python runner simply logs these packets to stdout.
 
 ### 3.1 Commands (Laptop $\rightarrow$ Controller / Emulator)
 
@@ -176,13 +176,15 @@ A keyboard-driven tool:
 
 ---
 
-## 6. Virtual Arm & Face Emulator (`tools/emulator.py`)
+## 6. Zero-Overhead Hardware Abstraction & Dry-Run Mode
 
-To develop 100% of the software without hardware:
-1. Creates a virtual pseudo-terminal (PTY) or local socket simulating `/dev/tty.usbserial-ESP32`.
-2. **ASCII / Graphical Arm Viewer:** Displays real-time joint angles, 2D kinematic schematic, and current movement trajectory.
-3. **Virtual OLED Window:** A 128x64 pixel window simulating the SSD1306 OLED display, showing the procedural animated eyes and expressions.
-4. Allows end-to-end testing of voice conversation, instant reflex perking, thinking states, and macro playback.
+Rather than spending time building a separate graphical emulator:
+1. **Direct Serial Interface (`serial_bridge.py`):**
+   * If an ESP32 is detected on USB (`/dev/cu.usbserial*` or specified port), packets are transmitted over serial immediately.
+   * If no ESP32 is connected (or `--dry-run` is passed), the system automatically defaults to console mock mode.
+2. **Console Output:**
+   * High-visibility formatted output showing exact servo angles, speed, easing type, active face state, and macro waypoint progress.
+   * Allows 100% of the conversational AI, reflex triggers, and macro sequences to be verified instantly on the Mac M4.
 
 ---
 
@@ -216,3 +218,4 @@ To develop 100% of the software without hardware:
 3. **Dum-E Comedy:** Reprimands instantly cause dejected head droops; compliments and completed tasks trigger excited celebrations.
 4. **Macro Accuracy:** Saved waypoints in `macros.json` execute smoothly and predictably without jerky discontinuities.
 5. **Drop-in Hardware Readiness:** When the physical ESP32 is plugged in, switching from the virtual port to `/dev/cu.usbserial` requires zero laptop code changes.
+
