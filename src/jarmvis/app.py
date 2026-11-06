@@ -11,6 +11,8 @@ from jarmvis.tts_engine import TTSEngine
 from jarmvis.stt_engine import STTEngine
 from jarmvis.voice_vad import VoiceActivityDetector
 from jarmvis.env_loader import load_dotenv
+from jarmvis.tui import TerminalUI
+from rich.live import Live
 
 load_dotenv()
 
@@ -78,10 +80,12 @@ class JarmvisApp:
         self.stt = STTEngine(use_mock=use_mock_ai)
         self.macros = MacroSequencer(bridge=self.bridge, macros_file=macros_file)
         self.motion = MotionPlanner()
+        self.tui = TerminalUI()
 
         import queue
         self.utterance_queue = queue.Queue()
         self.is_assistant_speaking = False
+        self.live_display = None
 
         # Low-latency voice reflex detector
         self.vad = VoiceActivityDetector(
@@ -95,7 +99,6 @@ class JarmvisApp:
     def _on_user_started_speaking(self) -> None:
         if self.is_assistant_speaking:
             return
-        print("\n[vad] speech detected -> reflex PERK_UP")
         self.perk_up()
 
     def _on_user_finished_speaking(self, audio_buffer: np.ndarray) -> None:
@@ -120,8 +123,6 @@ class JarmvisApp:
         if not cleaned_text:
             return
 
-        print(f"\nuser: {cleaned_text}")
-
         # 1. Immediate reflex: Thinking head tilt
         self.bridge.send_reflex("THINK")
 
@@ -132,37 +133,41 @@ class JarmvisApp:
         face = response.get("face", "NEUTRAL")
         macro = response.get("macro", None)
 
-        print(f"knox: {speech} [face={face}, macro={macro}]")
         if face:
             self.bridge.send_face(face)
 
-        # 3. Speak response out loud with dynamic emotional modulation
+        # 3. Print clean minimalist dialogue panel
+        self.tui.print_dialogue(user_text=cleaned_text, response_text=speech, face=face, macro=macro)
+
+        # 4. Speak response out loud with dynamic emotional modulation
         if speech:
             self.tts.speak(speech, emotion=emotion)
 
-        # 4. Trigger physical macro if requested
+        # 5. Trigger physical macro if requested
         if macro:
             self.macros.execute_macro(macro)
 
     def start_live_voice_listener(self, device: int | str | None = None) -> None:
-        """Starts real-time hands-free microphone listening loop with MLX-Whisper."""
+        """Starts real-time hands-free microphone listening loop with live TUI capsule."""
         try:
             import sounddevice as sd
         except ImportError:
-            print("error: sounddevice required for live voice. Install: pip install sounddevice")
+            self.tui.print_status("error: sounddevice required. Install: pip install sounddevice", style="bold red")
             return
 
         import time
         import threading
 
-        print("knox voice assistant active")
-        print("[vad] calibrating ambient room noise...")
+        self.tui.print_banner()
+        self.tui.print_status("Calibrating ambient room noise...", style="dim white")
         threshold = self.vad.calibrate_noise_floor(duration=0.4, device=device)
-        print(f"[vad] ready (noise threshold: {threshold:.5f}). speak to knox (Ctrl+C to stop)")
+        self.tui.print_status(f"Ready. Listening on microphone (threshold: {threshold:.5f}).", style="dim cyan")
+        self.tui.console.print()
 
         self.perk_up()
 
         stop_event = threading.Event()
+        current_level = [0.0]
 
         def _worker():
             while not stop_event.is_set():
@@ -177,20 +182,27 @@ class JarmvisApp:
                 if len(audio_buffer) < int(self.vad.sample_rate * 0.3):
                     continue
 
-                print("[stt] transcribing audio...")
-                user_text = self.stt.transcribe(audio_buffer)
-                if user_text.strip():
-                    self.is_assistant_speaking = True
-                    try:
+                self.is_assistant_speaking = True
+                if self.live_display:
+                    self.live_display.update(self.tui.create_transcribing_capsule())
+                
+                try:
+                    user_text = self.stt.transcribe(audio_buffer)
+                    if self.live_display:
+                        self.live_display.stop()
+                    
+                    if user_text.strip():
                         self.handle_voice_prompt(user_text)
-                    finally:
-                        time.sleep(0.4)
-                        while not self.utterance_queue.empty():
-                            try:
-                                self.utterance_queue.get_nowait()
-                            except Exception:
-                                break
-                        self.is_assistant_speaking = False
+                finally:
+                    time.sleep(0.4)
+                    while not self.utterance_queue.empty():
+                        try:
+                            self.utterance_queue.get_nowait()
+                        except Exception:
+                            break
+                    self.is_assistant_speaking = False
+                    if self.live_display:
+                        self.live_display.start()
 
         worker_thread = threading.Thread(target=_worker, daemon=True)
         worker_thread.start()
@@ -198,34 +210,41 @@ class JarmvisApp:
         def _audio_callback(indata, frames, time_info, status):
             if self.is_assistant_speaking:
                 return
-            if status:
-                logger.debug(f"Audio buffer status: {status}")
             chunk = indata[:, 0].copy() if indata.ndim > 1 else indata.flatten().copy()
             self.vad.process_audio_chunk(chunk)
+            rms = float(np.sqrt(np.mean(chunk ** 2)))
+            current_level[0] = rms
+            if self.live_display and not self.is_assistant_speaking:
+                self.live_display.update(self.tui.create_audio_capsule(self.vad.is_speaking, rms))
 
         try:
-            with sd.InputStream(
-                samplerate=self.vad.sample_rate,
-                channels=1,
-                dtype="float32",
-                blocksize=self.vad.chunk_size,
-                callback=_audio_callback,
-                device=device
-            ):
-                while True:
-                    sd.sleep(500)
+            with Live(self.tui.create_audio_capsule(False, 0.0), console=self.tui.console, transient=True, refresh_per_second=15) as live:
+                self.live_display = live
+                with sd.InputStream(
+                    samplerate=self.vad.sample_rate,
+                    channels=1,
+                    dtype="float32",
+                    blocksize=self.vad.chunk_size,
+                    callback=_audio_callback,
+                    device=device
+                ):
+                    while not stop_event.is_set():
+                        sd.sleep(100)
         except KeyboardInterrupt:
             stop_event.set()
-            print("\nstopped.")
+            self.tui.print_status("Session terminated.", style="dim bright_black")
 
     def run_cli_interactive(self) -> None:
-        print("knox interactive cli (commands: perk, dunce, celebrate, home, quit)")
+        self.tui.print_banner()
+        self.tui.print_status("Interactive keyboard mode. Type 'quit' to exit.", style="dim white")
+        self.tui.print_status("Commands: perk, dunce, celebrate, home", style="dim bright_black")
+        self.tui.console.print()
 
         self.perk_up()
 
         while True:
             try:
-                line = input("> ").strip()
+                line = self.tui.console.input("[bold cyan]> [/]").strip()
                 if not line:
                     continue
                 cmd_lower = line.lower()
@@ -243,7 +262,7 @@ class JarmvisApp:
                     self.handle_voice_prompt(line)
             except (KeyboardInterrupt, EOFError):
                 break
-        print("exit")
+        self.tui.print_status("Session terminated.", style="dim bright_black")
 
 def main():
     parser = argparse.ArgumentParser(description="Jarmvis Master Runner")

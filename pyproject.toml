@@ -13,7 +13,8 @@ dependencies = [
     "numpy>=1.24.0",
     "sounddevice>=0.4.6",
     "edge-tts>=6.1.9",
-    "requests>=2.31.0"
+    "requests>=2.31.0",
+    "rich>=13.7.0"
 ]
 
 [project.optional-dependencies]
