@@ -10,6 +10,9 @@ from jarmvis.serial_bridge import SerialBridge
 from jarmvis.tts_engine import TTSEngine
 from jarmvis.stt_engine import STTEngine
 from jarmvis.voice_vad import VoiceActivityDetector
+from jarmvis.audio_analyzer import AudioAnalyzer
+from jarmvis.gesticulator import Gesticulator
+from jarmvis.playback_engine import CoordinatedPlaybackEngine
 from jarmvis.env_loader import load_dotenv
 
 load_dotenv()
@@ -78,6 +81,9 @@ class JarmvisApp:
         self.stt = STTEngine(use_mock=use_mock_ai)
         self.macros = MacroSequencer(bridge=self.bridge, macros_file=macros_file)
         self.motion = MotionPlanner()
+        self.audio_analyzer = AudioAnalyzer(fps=50)
+        self.gesticulator = Gesticulator(safe_limits=self.motion.safe_limits)
+        self.playback = CoordinatedPlaybackEngine(bridge=self.bridge, fps=50)
 
         import queue
         self.utterance_queue = queue.Queue()
@@ -136,9 +142,31 @@ class JarmvisApp:
         if face:
             self.bridge.send_face(face)
 
-        # 3. Speak response out loud with dynamic emotional modulation
+        # 3. Speak response out loud with dynamic emotional modulation & reactive arm gesticulation
         if speech:
-            self.tts.speak(speech, emotion=emotion)
+            audio_path = self.tts.synthesize_to_file(speech, emotion=emotion)
+            if audio_path:
+                try:
+                    features = self.audio_analyzer.extract_features_from_file(audio_path)
+                    trajectory = self.gesticulator.generate_trajectory(
+                        features=features,
+                        emotion=emotion,
+                        base_pose=[90, 90, 90, 90, 90, 30],
+                    )
+                    self.playback.play_with_gestures(
+                        audio_path=audio_path,
+                        trajectory=trajectory,
+                        blocking=True,
+                    )
+                finally:
+                    import os
+                    if os.path.exists(audio_path):
+                        try:
+                            os.remove(audio_path)
+                        except OSError:
+                            pass
+            else:
+                self.tts.speak(speech, emotion=emotion)
 
         # 4. Trigger physical macro if requested
         if macro:
