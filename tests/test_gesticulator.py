@@ -90,3 +90,4 @@ def test_gesticulator_empty_features():
     gest = Gesticulator()
     traj = gest.generate_trajectory(features)
     assert traj == []
+

@@ -32,3 +32,4 @@ def test_full_speech_gestures_flow_in_app(monkeypatch):
     # Assert that wrist roll actually modulated and moved during speech
     wrist_rolls = [p[4] for p in poses_sent]
     assert max(wrist_rolls) != min(wrist_rolls)
+

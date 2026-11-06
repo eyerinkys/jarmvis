@@ -192,3 +192,4 @@ class Gesticulator:
             trajectory.append(self.clamp(pose))
 
         return trajectory
+

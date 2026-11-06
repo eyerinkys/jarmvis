@@ -283,3 +283,4 @@ Expected: ALL tests PASS (existing 46 + all new tests).
 git add src/jarmvis/app.py tests/test_speech_gestures_flow.py
 git commit -m "feat: integrate reactive speech gesticulation engine into JarmvisApp"
 ```
+

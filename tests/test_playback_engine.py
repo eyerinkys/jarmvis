@@ -42,3 +42,4 @@ def test_playback_engine_non_blocking_thread():
     assert thread is not None
     thread.join(timeout=1.0)
     assert bridge.send_pose.call_count == 15
+

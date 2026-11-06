@@ -147,3 +147,4 @@ Manages synchronous lockstep execution between audio and serial motor streaming:
    - Run end-to-end cycle in dry-run mode with mock audio.
    - Verify that serial bridge receives sequential 50Hz pose packets matching the audio duration.
    - Verify post-speech macro execution succeeds after gesture playback completes.
+

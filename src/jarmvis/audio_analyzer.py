@@ -143,3 +143,4 @@ class AudioAnalyzer:
                     os.remove(wav_path)
                 except OSError:
                     pass
+

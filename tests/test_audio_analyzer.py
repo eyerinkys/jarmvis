@@ -60,3 +60,4 @@ def test_audio_analyzer_empty_signal():
     assert len(features.rms_envelope) == 0
     assert len(features.beat_onsets) == 0
     assert features.duration_sec == 0.0
+
