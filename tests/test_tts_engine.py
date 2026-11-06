@@ -40,11 +40,12 @@ def test_tts_custom_voice_and_rate(capsys):
     assert "[tts:mock]" in captured
     assert "voice=en-GB-ThomasNeural" in captured
 
-def test_tts_error_graceful_fallback(capsys):
+def test_tts_error_graceful_fallback(capsys, monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     # When synthesis fails (e.g. network disconnect), it should log error and call on_playback_end
     start_mock = MagicMock()
     end_mock = MagicMock()
-    tts = TTSEngine(voice="en-GB-RyanNeural", use_mock=False)
+    tts = TTSEngine(voice="en-GB-RyanNeural", use_mock=False, elevenlabs_api_key="")
 
     with patch("edge_tts.Communicate.save", side_effect=RuntimeError("Connection refused")):
         tts.speak("Emergency alert.", on_playback_start=start_mock, on_playback_end=end_mock)
@@ -55,8 +56,9 @@ def test_tts_error_graceful_fallback(capsys):
     assert "[tts:fallback]" in captured
     assert "Emergency alert." in captured
 
-def test_tts_real_playback_invokes_system_player():
-    tts = TTSEngine(use_mock=False)
+def test_tts_real_playback_invokes_system_player(monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    tts = TTSEngine(use_mock=False, elevenlabs_api_key="")
     
     with patch("edge_tts.Communicate.save") as mock_save, patch("os.system") as mock_system:
         tts.speak("Testing audio player integration.")

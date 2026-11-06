@@ -57,17 +57,18 @@ class TTSEngine:
             return False
 
         voice_id = self.elevenlabs_voice_id or os.environ.get("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
-        model_id = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
+        model_id = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
 
-        stability = 0.50
-        style = 0.40
+        # Lower stability gives expressive human inflection, breath, and realism
+        stability = 0.30
+        style = 0.50
         emo_upper = str(emotion).upper() if emotion else ""
         if emo_upper in ["ANGRY", "EXCITED", "SARCASTIC"]:
-            stability = 0.35
-            style = 0.55
+            stability = 0.20
+            style = 0.65
         elif emo_upper in ["SAD", "ASHAMED"]:
-            stability = 0.60
-            style = 0.20
+            stability = 0.45
+            style = 0.30
 
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
         headers = {
