@@ -9,4 +9,8 @@ dist/
 .pio/
 *.bak
 .pytest_cache/
+.env
+.env.local
+*.env
+
 

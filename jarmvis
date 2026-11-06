@@ -8,7 +8,11 @@ src_dir = os.path.join(root_dir, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
+from jarmvis.env_loader import load_dotenv
+load_dotenv()
+
 from jarmvis.app import main
 
 if __name__ == "__main__":
     main()
+

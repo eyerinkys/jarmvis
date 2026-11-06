@@ -221,6 +221,8 @@ class JarvisBrain:
             return self._mock_think(user_prompt)
 
         import os
+        from jarmvis.env_loader import load_dotenv
+        load_dotenv()
 
         # 1. Check for Groq API Key (Llama 3.3 70B - 300+ tok/s, ultra-fast & witty)
         groq_key = self.api_key or os.environ.get("GROQ_API_KEY")

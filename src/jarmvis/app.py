@@ -10,6 +10,9 @@ from jarmvis.serial_bridge import SerialBridge
 from jarmvis.tts_engine import TTSEngine
 from jarmvis.stt_engine import STTEngine
 from jarmvis.voice_vad import VoiceActivityDetector
+from jarmvis.env_loader import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger("jarmvis.main")
 
