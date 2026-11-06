@@ -56,7 +56,11 @@ def test_extract_json_malformed_fallback():
     assert parsed["emotion"] == "NEUTRAL"
     assert parsed["face"] == "NEUTRAL"
 
-def test_ollama_successful_response():
+def test_ollama_successful_response(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setattr("jarmvis.env_loader.load_dotenv", lambda *args, **kwargs: None)
+
     brain = JarvisBrain(use_mock=False)
     fake_response = MagicMock()
     fake_response.read.return_value = json.dumps({

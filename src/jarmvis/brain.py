@@ -156,35 +156,54 @@ class JarvisBrain:
         }
 
     def _query_groq(self, user_prompt: str, api_key: str) -> dict[str, Any]:
-        """Calls Groq Cloud API with Llama-3.3-70B for ultra-fast (300+ tok/s) JSON dialogue."""
+        """Calls Groq Cloud API for ultra-fast JSON dialogue (auto-discovers available model)."""
+        import os
         url = "https://api.groq.com/openai/v1/chat/completions"
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.7
-        }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
-            },
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=self.timeout + 4.0) as response:
-            body = response.read().decode("utf-8")
-            res_json = json.loads(body)
-            choices = res_json.get("choices", [])
-            if choices:
-                content = choices[0].get("message", {}).get("content", "")
-                if content:
-                    return extract_json(content)
+        candidate_models = [
+            os.environ.get("GROQ_MODEL"),
+            "openai/gpt-oss-120b",
+            "llama-3.3-70b-versatile",
+            "qwen/qwen3.8-27b",
+        ]
+        models = [m for m in candidate_models if m]
+
+        for model_name in models:
+            payload = {
+                "model": model_name,
+                "messages": [
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.7
+            }
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+                },
+                method="POST"
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout + 4.0) as response:
+                    body = response.read().decode("utf-8")
+                    res_json = json.loads(body)
+                    choices = res_json.get("choices", [])
+                    if choices:
+                        content = choices[0].get("message", {}).get("content", "")
+                        if content:
+                            return extract_json(content)
+            except urllib.error.HTTPError as he:
+                if he.code in (404, 400):
+                    # Model not available or rejected on this tier, try next candidate
+                    continue
+                raise
+            except Exception:
+                raise
         return self._mock_think(user_prompt)
 
     def _query_gemini(self, user_prompt: str, api_key: str) -> dict[str, Any]:
