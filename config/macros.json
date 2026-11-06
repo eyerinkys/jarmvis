@@ -1,0 +1,24 @@
+{
+  "HOME": [
+    {"angles": [90, 90, 90, 90, 90, 30], "speed": 40, "pause_ms": 200, "face": "NEUTRAL"}
+  ],
+  "PERK_UP": [
+    {"angles": [90, 110, 80, 60, 90, 40], "speed": 80, "pause_ms": 150, "face": "ALERT"}
+  ],
+  "DUNCE_CORNER": [
+    {"angles": [30, 40, 140, 20, 90, 20], "speed": 25, "pause_ms": 800, "face": "SAD"}
+  ],
+  "CELEBRATE": [
+    {"angles": [90, 100, 90, 60, 90, 100], "speed": 70, "pause_ms": 150, "face": "HAPPY"},
+    {"angles": [90, 100, 90, 60, 90, 15],  "speed": 90, "pause_ms": 100, "face": "HAPPY"},
+    {"angles": [90, 100, 90, 60, 90, 100], "speed": 90, "pause_ms": 100, "face": "HAPPY"},
+    {"angles": [90, 100, 90, 60, 90, 15],  "speed": 90, "pause_ms": 200, "face": "HAPPY"}
+  ],
+  "PICK_BLOCK": [
+    {"angles": [45, 60, 80, 45, 90, 100], "speed": 50, "pause_ms": 400, "face": "DETERMINED"},
+    {"angles": [45, 35, 65, 30, 90, 100], "speed": 30, "pause_ms": 300, "face": "DETERMINED"},
+    {"angles": [45, 35, 65, 30, 90, 20],  "speed": 40, "pause_ms": 400, "face": "DETERMINED"},
+    {"angles": [45, 75, 90, 60, 90, 20],  "speed": 40, "pause_ms": 300, "face": "HAPPY"},
+    {"angles": [90, 75, 90, 60, 90, 20],  "speed": 45, "pause_ms": 500, "face": "HAPPY"}
+  ]
+}

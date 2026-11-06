@@ -32,7 +32,7 @@
   - `send_face(state: str, pupil_x: int = 0, pupil_y: int = 0) -> bool`
   - `close() -> None`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_serial_bridge.py
@@ -70,12 +70,12 @@ def test_serial_connected_sends_json():
         assert packet["speed"] == 40
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_serial_bridge.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis')
 
-- [ ] **Step 3: Implement `pyproject.toml` and `SerialBridge`**
+- [x] **Step 3: Implement `pyproject.toml` and `SerialBridge`**
 
 Create `pyproject.toml`:
 ```toml
@@ -189,12 +189,12 @@ class SerialBridge:
             self.serial.close()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_serial_bridge.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pyproject.toml src/ tests/
@@ -215,7 +215,7 @@ git commit -m "feat(bridge): implement SerialBridge with dry-run console mode"
   - `generate_spring_overshoot(start: list[int], target: list[int], overshoot_deg: float = 3.0) -> list[list[int]]`
   - `generate_breathing_idle(current: list[int], step_index: int) -> list[int]`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_motion.py
@@ -251,12 +251,12 @@ def test_idle_breathing():
     assert p1[1] != p2[1] # Shoulder moves subtly
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_motion.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.motion')
 
-- [ ] **Step 3: Implement `src/jarmvis/motion.py`**
+- [x] **Step 3: Implement `src/jarmvis/motion.py`**
 
 ```python
 import math
@@ -331,12 +331,12 @@ class MotionPlanner:
         return self.clamp(result)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_motion.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/jarmvis/motion.py tests/test_motion.py
@@ -359,7 +359,7 @@ git commit -m "feat(motion): add cosine easing, spring overshoot, and idle breat
   - `execute_macro(name: str, step_callback: callable | None = None) -> bool`
   - `save_waypoint(macro_name: str, angles: list[int], speed: int = 40, pause_ms: int = 300) -> None`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_macros.py
@@ -396,12 +396,12 @@ def test_save_new_waypoint(tmp_path):
     assert reloaded.macros["PICK_BLOCK"][0]["angles"] == [45, 60, 80, 45, 90, 100]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_macros.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.macros')
 
-- [ ] **Step 3: Implement `src/jarmvis/macros.py`, `config/macros.json`, and `tools/calibrate.py`**
+- [x] **Step 3: Implement `src/jarmvis/macros.py`, `config/macros.json`, and `tools/calibrate.py`**
 
 Create `config/macros.json`:
 ```json
@@ -559,12 +559,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_macros.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add config/macros.json src/jarmvis/macros.py tools/calibrate.py tests/test_macros.py

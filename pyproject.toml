@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarmvis"
+version = "0.1.0"
+description = "5-DOF Robotic Arm with JARVIS Intelligence and Dum-E Personality"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial>=3.5",
+    "numpy>=1.24.0",
+    "sounddevice>=0.4.6",
+    "edge-tts>=6.1.9",
+    "requests>=2.31.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+]
+
