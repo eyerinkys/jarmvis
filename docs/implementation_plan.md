@@ -585,7 +585,7 @@ git commit -m "feat(macros): add macro waypoint sequencer and interactive calibr
   - `start_listening_stream()`
   - `stop_listening_stream()`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_voice_vad.py
@@ -610,12 +610,12 @@ def test_energy_fallback_vad_triggers():
     assert on_start.called
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_voice_vad.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.voice_vad')
 
-- [ ] **Step 3: Implement `src/jarmvis/voice_vad.py`**
+- [x] **Step 3: Implement `src/jarmvis/voice_vad.py`**
 
 ```python
 import logging
@@ -674,12 +674,12 @@ class VoiceActivityDetector:
         return self.is_speaking
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_voice_vad.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/jarmvis/voice_vad.py tests/test_voice_vad.py
