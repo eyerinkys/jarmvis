@@ -2,9 +2,9 @@
 ## Software-First Architectural Design Specification
 
 **Date:** 2026-11-06  
-**Target Hardware:** Apple Silicon Mac M4 Air (Brain) + ESP32 (Motion Controller)  
-**Actuation:** 6 Servos (3x MG996R, 3x SG90) + SSD1306 128x64 OLED Face  
-**Methodology:** Software-First Development (Virtual Simulator before Physical Hardware)
+**Target Hardware:** Apple Silicon Mac M4 Air (Brain) + ESP32 (Motion Controller, in hand)  
+**Actuation:** 6 Servos (3x MG996R, 3x SG90 - arriving later) + SSD1306 128x64 OLED Face  
+**Methodology:** Software & Firmware First (ESP32 active over USB Serial; physical arm assembly when prints/servos arrive)
 
 ---
 
@@ -12,11 +12,13 @@
 
 **Jarmvis** merges the articulate, British wit of Marvel's **JARVIS** with the clumsy, eager, puppy-like physical comedy of Tony Stark's workshop arm, **Dum-E**.
 
-Because physical 3D printing and electronic component delivery occur later in the project schedule, this specification adopts a strict **Software-First Strategy**:
-1. All AI conversational pipelines (VAD, STT, LLM, TTS), emotion state machines, macro executors, and calibration tools are built and verified on the **MacBook Air M4** first.
-2. A **Virtual Arm & Face Emulator** mimics the ESP32 over a local virtual serial port (PTY / loopback), rendering real-time joint positions and animated OLED eye states on-screen.
-3. The **ESP32 firmware** is written as a direct drop-in drop-and-flash replacement conforming to the exact same JSON serial protocol.
-4. Physical assembly, wiring, and desk calibration happen seamlessly once parts arrive.
+Because physical 3D printing and servo motor delivery occur later in the project schedule, this specification adopts a **Firmware & Software First Strategy**:
+1. All AI conversational pipelines (VAD, STT, LLM, TTS), emotion state machines, macro executors, and calibration tools are built and verified on the **MacBook Air M4**.
+2. The **ESP32 is connected via USB cable directly to the Mac right now**. The firmware will be flashed onto the actual board:
+   - It will receive real JSON packets over USB Serial at 115200 baud.
+   - It will generate real 50Hz PWM signals on the 6 GPIO pins (ready for servos when plugged in).
+   - It can drive the I2C OLED display directly for animated eye expressions.
+3. Physical assembly, wiring to the external 5V power supply, and desk calibration happen once the 3D printed links and servos arrive.
 
 ---
 
