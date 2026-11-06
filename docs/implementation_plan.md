@@ -698,7 +698,7 @@ git commit -m "feat(vad): implement sub-30ms voice activity detector with reflex
 - Produces: `TTSEngine`
   - `speak(text: str, on_playback_start: callable | None = None, on_playback_end: callable | None = None) -> None`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_tts_engine.py
@@ -715,12 +715,12 @@ def test_tts_initialization():
     assert end_mock.called
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_tts_engine.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.tts_engine')
 
-- [ ] **Step 3: Implement `src/jarmvis/tts_engine.py`**
+- [x] **Step 3: Implement `src/jarmvis/tts_engine.py`**
 
 ```python
 import asyncio
@@ -777,12 +777,12 @@ class TTSEngine:
             on_playback_end()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_tts_engine.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/jarmvis/tts_engine.py tests/test_tts_engine.py
