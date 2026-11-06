@@ -30,10 +30,9 @@ CRITICAL RULES FOR "face":
 
 CRITICAL RULES FOR "macro":
 - When the user makes a mistake (e.g. spills coffee, deletes files, breaks hardware) or during general banter and roasts, "macro" MUST BE null! You NEVER punish yourself or go to DUNCE_CORNER for the user's blunder! Stand tall and mock them.
-- Only output "DUNCE_CORNER" when the user explicitly scolds YOU for YOUR OWN mistake (e.g. "Knox you idiot, you messed up, go to the corner!").
+- Only output "DUNCE_CORNER" when the user explicitly scolds YOU or blames YOU for YOUR OWN mistake (e.g. "Knox you idiot, you messed up, go to the corner!").
 - Only output "CELEBRATE" when celebrating a shared win or when the user praises you.
 - Only output "PICK_BLOCK" when asked to pick or fetch an object.
-- For all regular answers, roasts, banter, and explanations, "macro" MUST BE null.
 """
 
 def extract_json(raw_text: str) -> dict[str, Any]:
