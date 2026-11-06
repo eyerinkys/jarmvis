@@ -155,11 +155,90 @@ class JarvisBrain:
             "macro": None,
         }
 
+    def _query_groq(self, user_prompt: str, api_key: str) -> dict[str, Any]:
+        """Calls Groq Cloud API with Llama-3.3-70B for ultra-fast (300+ tok/s) JSON dialogue."""
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.7
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout + 4.0) as response:
+            body = response.read().decode("utf-8")
+            res_json = json.loads(body)
+            choices = res_json.get("choices", [])
+            if choices:
+                content = choices[0].get("message", {}).get("content", "")
+                if content:
+                    return extract_json(content)
+        return self._mock_think(user_prompt)
+
+    def _query_gemini(self, user_prompt: str, api_key: str) -> dict[str, Any]:
+        """Calls Google Gemini 2.0 Flash free-tier API directly via standard REST."""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": user_prompt}]}],
+            "systemInstruction": {"parts": [{"text": self.system_prompt}]},
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.7
+            }
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout + 3.0) as response:
+            body = response.read().decode("utf-8")
+            res_json = json.loads(body)
+            candidates = res_json.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    return extract_json(parts[0].get("text", ""))
+        return self._mock_think(user_prompt)
+
     def think(self, user_prompt: str) -> dict[str, Any]:
         """Processes user input prompt, returning structured {speech, emotion, face, macro}."""
         if self.use_mock:
             return self._mock_think(user_prompt)
 
+        import os
+
+        # 1. Check for Groq API Key (Llama 3.3 70B - 300+ tok/s, ultra-fast & witty)
+        groq_key = self.api_key or os.environ.get("GROQ_API_KEY")
+        if groq_key and ("gsk_" in groq_key or len(groq_key) > 20):
+            try:
+                return self._query_groq(user_prompt, groq_key)
+            except Exception as e:
+                logger.warning(f"Groq Llama-3.3 query failed: {e}. Trying secondary backends...")
+
+        # 2. Check for Gemini API Key (Zero local RAM, ultra-low latency)
+        gemini_key = self.api_key or os.environ.get("GEMINI_API_KEY")
+        if gemini_key:
+            try:
+                return self._query_gemini(user_prompt, gemini_key)
+            except Exception as e:
+                logger.warning(f"Gemini API query failed: {e}. Trying local Ollama...")
+
+        # 3. Check for local Ollama instance (100% local, offline)
         try:
             payload = {
                 "model": self.model,
@@ -181,5 +260,10 @@ class JarvisBrain:
                 raw_text = res_json.get("response", "")
                 return extract_json(raw_text)
         except Exception as e:
-            logger.warning(f"Ollama request to {self.endpoint} failed ({e}). Falling back to mock brain.")
+            logger.warning(
+                f"\n⚠️  [JARVIS BRAIN] No active AI backend detected ({e}).\n"
+                f"   Currently using fallback heuristics with set voicelines.\n"
+                f"   To enable 100% unique AI conversations with Llama 3.3 70B, simply run:\n"
+                f"   export GROQ_API_KEY=\"gsk_...\" (get free key from https://console.groq.com/keys)\n"
+            )
             return self._mock_think(user_prompt)

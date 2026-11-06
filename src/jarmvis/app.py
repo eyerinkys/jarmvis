@@ -1,12 +1,15 @@
 import argparse
 import logging
 import sys
+import numpy as np
 from typing import Any
 
 from jarmvis.macros import MacroSequencer
 from jarmvis.motion import MotionPlanner
 from jarmvis.serial_bridge import SerialBridge
 from jarmvis.tts_engine import TTSEngine
+from jarmvis.stt_engine import STTEngine
+from jarmvis.voice_vad import VoiceActivityDetector
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("jarmvis.main")
@@ -68,8 +71,26 @@ class JarmvisApp:
                 self.brain = _DefaultFallbackBrain(use_mock=use_mock_ai)
 
         self.tts = TTSEngine(use_mock=use_mock_ai)
+        self.stt = STTEngine(use_mock=use_mock_ai)
         self.macros = MacroSequencer(bridge=self.bridge, macros_file=macros_file)
         self.motion = MotionPlanner()
+
+        # Low-latency voice reflex detector
+        self.vad = VoiceActivityDetector(
+            on_speech_start=self._on_user_started_speaking,
+            on_speech_end=self._on_user_finished_speaking,
+            energy_threshold=0.015
+        )
+
+    def _on_user_started_speaking(self) -> None:
+        print("\n⚡ [MIC] Speech detected -> Instant PERK_UP reflex!")
+        self.perk_up()
+
+    def _on_user_finished_speaking(self, audio_buffer: np.ndarray) -> None:
+        print("🧠 [MIC] Transcribing speech with MLX-Whisper...")
+        user_text = self.stt.transcribe(audio_buffer)
+        if user_text.strip():
+            self.handle_voice_prompt(user_text)
 
     def perk_up(self) -> None:
         self.bridge.send_reflex("PERK_UP")
@@ -103,7 +124,7 @@ class JarmvisApp:
         if face:
             self.bridge.send_face(face)
 
-        # 3. Speak response
+        # 3. Speak response out loud
         if speech:
             self.tts.speak(speech)
 
@@ -111,9 +132,46 @@ class JarmvisApp:
         if macro:
             self.macros.execute_macro(macro)
 
+    def start_live_voice_listener(self) -> None:
+        """Starts real-time hands-free microphone listening loop with MLX-Whisper."""
+        try:
+            import sounddevice as sd
+        except ImportError:
+            print("❌ Error: sounddevice library is required for live voice listening. Run: pip install sounddevice")
+            return
+
+        print("\n=======================================================")
+        print("    JARMVIS: HANDS-FREE VOICE ASSISTANT (MLX-WHISPER)  ")
+        print("=======================================================")
+        print("🎤 Microphone is LIVE. Speak to JARVIS naturally.")
+        print("• Instant reflex (<50ms) triggers as soon as you start speaking.")
+        print("• MLX-Whisper transcribes as soon as you pause.")
+        print("• Press Ctrl+C to stop listening.\n")
+
+        self.perk_up()
+
+        def _audio_callback(indata, frames, time_info, status):
+            if status:
+                logger.warning(f"Audio buffer status: {status}")
+            self.vad.process_audio_chunk(indata.flatten())
+
+        try:
+            with sd.InputStream(
+                samplerate=16000,
+                channels=1,
+                dtype="float32",
+                blocksize=512,
+                callback=_audio_callback
+            ):
+                print("🟢 Listening actively... (Say 'Jarvis, pick up that block', or talk normally)")
+                while True:
+                    sd.sleep(500)
+        except KeyboardInterrupt:
+            print("\nStopped live voice listener.")
+
     def run_cli_interactive(self) -> None:
         print("\n=======================================================")
-        print("          JARMVIS: JARVIS MIND & DUM-E BODY            ")
+        print("          JARMVIS: KEYBOARD CLI INTERFACE              ")
         print("=======================================================")
         print("Commands:")
         print("  - Type any statement to talk (e.g., 'Pick up that block')")
@@ -123,7 +181,6 @@ class JarmvisApp:
         print("  - 'home' to reset to rest position")
         print("  - 'quit' to exit\n")
 
-        # Initial wake up gesture
         self.perk_up()
 
         while True:
@@ -153,11 +210,16 @@ def main():
     parser.add_argument("--port", type=str, default=None, help="ESP32 serial port (e.g. /dev/cu.usbserial-*)")
     parser.add_argument("--dry-run", action="store_true", help="Run in terminal mock mode without ESP32")
     parser.add_argument("--mock-ai", action="store_true", help="Use instant mock brain and TTS for testing")
+    parser.add_argument("--cli", action="store_true", help="Use keyboard prompt instead of live microphone")
     args = parser.parse_args()
 
     bridge = SerialBridge(port=args.port, dry_run=args.dry_run)
     app = JarmvisApp(bridge=bridge, use_mock_ai=args.mock_ai)
-    app.run_cli_interactive()
+
+    if args.cli:
+        app.run_cli_interactive()
+    else:
+        app.start_live_voice_listener()
 
 if __name__ == "__main__":
     main()

@@ -83,3 +83,27 @@ def test_brain_init_spec_compliance():
     assert brain.api_key == "test-api-key"
     assert brain.use_mock is True
     assert brain.endpoint == "http://localhost:11434/api/generate"
+
+def test_groq_llama_successful_response():
+    brain = JarvisBrain(api_key="gsk_mock_valid_key_for_testing_1234567890", use_mock=False)
+    fake_response = MagicMock()
+    fake_response.read.return_value = json.dumps({
+        "choices": [{
+            "message": {
+                "content": json.dumps({
+                    "speech": "Indeed, sir. Llama 3.3 70B is functioning at peak efficiency.",
+                    "emotion": "CONFIDENT",
+                    "face": "FOCUSED",
+                    "macro": None
+                })
+            }
+        }]
+    }).encode("utf-8")
+    fake_response.__enter__.return_value = fake_response
+    fake_response.__exit__.return_value = None
+
+    with patch("urllib.request.urlopen", return_value=fake_response) as mock_urlopen:
+        res = brain.think("Status report with Llama")
+        assert mock_urlopen.called
+        assert res["speech"] == "Indeed, sir. Llama 3.3 70B is functioning at peak efficiency."
+        assert res["emotion"] == "CONFIDENT"
