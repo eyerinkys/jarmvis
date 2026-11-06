@@ -8,10 +8,23 @@ class SerialBridge:
     def __init__(self, port: str | None = None, baud: int = 115200, dry_run: bool = False):
         self.port = port
         self.baud = baud
-        self.dry_run = dry_run or (port is None)
+        self.dry_run = dry_run
         self.serial = None
 
-        if not self.dry_run:
+        if not self.dry_run and self.port is None:
+            # Auto-detect ESP32 serial port if available
+            try:
+                import serial.tools.list_ports
+                for p in serial.tools.list_ports.comports():
+                    device = p.device or ""
+                    if "usbserial" in device.lower() or "usbmodem" in device.lower() or "wchusbserial" in device.lower():
+                        self.port = device
+                        logger.info(f"Auto-detected ESP32 serial device: {self.port}")
+                        break
+            except Exception as e:
+                logger.debug(f"Port auto-detection error: {e}")
+
+        if not self.dry_run and self.port:
             try:
                 import serial
                 self.serial = serial.Serial(self.port, self.baud, timeout=1.0)
@@ -19,6 +32,8 @@ class SerialBridge:
             except Exception as e:
                 logger.warning(f"Failed to connect to {self.port}: {e}. Falling back to dry-run mode.")
                 self.dry_run = True
+        else:
+            self.dry_run = True
 
     def _transmit(self, payload: dict[str, Any]) -> bool:
         packet_str = json.dumps(payload) + "\n"

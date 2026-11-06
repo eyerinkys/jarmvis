@@ -44,3 +44,4 @@ def test_app_direct_command_execution():
     app.perk_up()
     assert mock_bridge.send_reflex.called
     assert mock_bridge.send_reflex.call_args[0][0] == "PERK_UP"
+
