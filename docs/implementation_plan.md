@@ -944,7 +944,7 @@ git commit -m "feat(brain): implement JARVIS mind and structured Dum-E emotion p
   - `handle_voice_prompt(text: str) -> None`
   - `run_cli_interactive() -> None`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_app.py
@@ -962,12 +962,12 @@ def test_app_voice_interaction_flow(capsys):
     assert "[DRY-RUN POSE]" in captured
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_app.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.app')
 
-- [ ] **Step 3: Implement `src/jarmvis/app.py`**
+- [x] **Step 3: Implement `src/jarmvis/app.py`**
 
 ```python
 import argparse
@@ -1056,12 +1056,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_app.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/jarmvis/app.py tests/test_app.py
