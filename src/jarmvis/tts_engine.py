@@ -47,7 +47,7 @@ class TTSEngine:
             on_playback_start()
 
         if self.use_mock:
-            print(f"🔊 [MOCK TTS VOICE: {self.voice}] \"{cleaned_text}\"")
+            print(f"[tts:mock] voice={self.voice} text=\"{cleaned_text}\"")
             if on_playback_end:
                 on_playback_end()
             return
@@ -64,7 +64,7 @@ class TTSEngine:
             os.system(f"afplay '{tmp_path}' > /dev/null 2>&1")
         except Exception as e:
             logger.error(f"TTS audio playback failed: {e}")
-            print(f"🔊 [FALLBACK TTS] \"{cleaned_text}\"")
+            print(f"[tts:fallback] text=\"{cleaned_text}\"")
         finally:
             if tmp_path and os.path.exists(tmp_path):
                 try:

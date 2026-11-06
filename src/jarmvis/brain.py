@@ -261,9 +261,7 @@ class JarvisBrain:
                 return extract_json(raw_text)
         except Exception as e:
             logger.warning(
-                f"\n⚠️  [JARVIS BRAIN] No active AI backend detected ({e}).\n"
-                f"   Currently using fallback heuristics with set voicelines.\n"
-                f"   To enable 100% unique AI conversations with Llama 3.3 70B, simply run:\n"
-                f"   export GROQ_API_KEY=\"gsk_...\" (get free key from https://console.groq.com/keys)\n"
+                f"[brain:warning] No active AI backend detected ({e}). Using offline heuristic fallback. "
+                f"To enable Llama 3.3 70B, set: export GROQ_API_KEY=\"gsk_...\""
             )
             return self._mock_think(user_prompt)

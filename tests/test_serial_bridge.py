@@ -8,7 +8,7 @@ def test_dry_run_send_pose(capsys):
     success = bridge.send_pose(angles=[90, 60, 110, 45, 90, 30], speed=50, easing="spring", face="alert")
     assert success is True
     captured = capsys.readouterr().out
-    assert "[DRY-RUN POSE]" in captured
+    assert "[dry-run:pose]" in captured
     assert "90, 60, 110, 45, 90, 30" in captured
     assert "alert" in captured
 
@@ -17,7 +17,7 @@ def test_dry_run_send_reflex(capsys):
     success = bridge.send_reflex("PERK_UP")
     assert success is True
     captured = capsys.readouterr().out
-    assert "[DRY-RUN REFLEX]" in captured
+    assert "[dry-run:reflex]" in captured
     assert "PERK_UP" in captured
 
 def test_serial_connected_sends_json():

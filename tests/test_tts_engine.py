@@ -18,7 +18,8 @@ def test_tts_mock_speak(capsys):
     assert start_mock.called
     assert end_mock.called
     captured = capsys.readouterr().out
-    assert "[MOCK TTS VOICE: en-GB-RyanNeural]" in captured
+    assert "[tts:mock]" in captured
+    assert "voice=en-GB-RyanNeural" in captured
     assert "Hello sir, all systems operational." in captured
 
 def test_tts_empty_string_noop():
@@ -36,7 +37,8 @@ def test_tts_custom_voice_and_rate(capsys):
     assert tts.rate == "+15%"
     tts.speak("Testing custom configuration.")
     captured = capsys.readouterr().out
-    assert "[MOCK TTS VOICE: en-GB-ThomasNeural]" in captured
+    assert "[tts:mock]" in captured
+    assert "voice=en-GB-ThomasNeural" in captured
 
 def test_tts_error_graceful_fallback(capsys):
     # When synthesis fails (e.g. network disconnect), it should log error and call on_playback_end
@@ -50,7 +52,7 @@ def test_tts_error_graceful_fallback(capsys):
     assert start_mock.called
     assert end_mock.called
     captured = capsys.readouterr().out
-    assert "[FALLBACK TTS]" in captured
+    assert "[tts:fallback]" in captured
     assert "Emergency alert." in captured
 
 def test_tts_real_playback_invokes_system_player():

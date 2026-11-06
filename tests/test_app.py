@@ -9,8 +9,8 @@ def test_app_voice_interaction_flow(capsys):
     app.handle_voice_prompt("Jarvis, pick up that block")
     captured = capsys.readouterr().out
     assert "Attempting to retrieve the block" in captured
-    assert "[DRY-RUN POSE]" in captured
-    assert "[DRY-RUN REFLEX] Trigger: THINK" in captured
+    assert "[dry-run:pose]" in captured
+    assert "[dry-run:reflex] trigger=THINK" in captured
 
 def test_app_scolding_flow(capsys):
     bridge = SerialBridge(dry_run=True)
@@ -18,7 +18,7 @@ def test_app_scolding_flow(capsys):
     app.handle_voice_prompt("Dummy, go to the dunce corner!")
     captured = capsys.readouterr().out
     assert "dunce corner" in captured
-    assert "[DRY-RUN FACE] State: SAD" in captured
+    assert "[dry-run:face] state=SAD" in captured
 
 def test_app_custom_brain_injection():
     mock_brain = MagicMock()

@@ -38,15 +38,15 @@ class SerialBridge:
     def _transmit(self, payload: dict[str, Any]) -> bool:
         packet_str = json.dumps(payload) + "\n"
         if self.dry_run:
-            cmd = payload.get("cmd", "").upper()
-            if cmd == "POSE":
-                print(f"🤖 [DRY-RUN POSE] Angles: {payload.get('angles')} | Speed: {payload.get('speed')}% | Easing: {payload.get('easing')} | Face: {payload.get('face')}")
-            elif cmd == "REFLEX":
-                print(f"⚡ [DRY-RUN REFLEX] Trigger: {payload.get('type')}")
-            elif cmd == "FACE":
-                print(f"👀 [DRY-RUN FACE] State: {payload.get('state')} (x={payload.get('pupil_x')}, y={payload.get('pupil_y')})")
+            cmd = payload.get("cmd", "").lower()
+            if cmd == "pose":
+                print(f"[dry-run:pose] angles={payload.get('angles')} speed={payload.get('speed')}% face={payload.get('face')}")
+            elif cmd == "reflex":
+                print(f"[dry-run:reflex] trigger={payload.get('type')}")
+            elif cmd == "face":
+                print(f"[dry-run:face] state={payload.get('state')} (x={payload.get('pupil_x')}, y={payload.get('pupil_y')})")
             else:
-                print(f"📦 [DRY-RUN PACKET] {packet_str.strip()}")
+                print(f"[dry-run:packet] {packet_str.strip()}")
             return True
         
         try:
