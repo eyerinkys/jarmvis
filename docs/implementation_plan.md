@@ -215,7 +215,7 @@ git commit -m "feat(bridge): implement SerialBridge with dry-run console mode"
   - `generate_spring_overshoot(start: list[int], target: list[int], overshoot_deg: float = 3.0) -> list[list[int]]`
   - `generate_breathing_idle(current: list[int], step_index: int) -> list[int]`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_motion.py
@@ -251,12 +251,12 @@ def test_idle_breathing():
     assert p1[1] != p2[1] # Shoulder moves subtly
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_motion.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.motion')
 
-- [ ] **Step 3: Implement `src/jarmvis/motion.py`**
+- [x] **Step 3: Implement `src/jarmvis/motion.py`**
 
 ```python
 import math
@@ -331,12 +331,12 @@ class MotionPlanner:
         return self.clamp(result)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_motion.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/jarmvis/motion.py tests/test_motion.py
