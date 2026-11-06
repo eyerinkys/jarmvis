@@ -15,9 +15,9 @@
     {"angles": [90, 100, 90, 60, 90, 15],  "speed": 90, "pause_ms": 200, "face": "HAPPY"}
   ],
   "PICK_BLOCK": [
-    {"angles": [45, 60, 80, 45, 90, 100], "speed": 50, "pause_ms": 400, "face": "DETERMINED"},
-    {"angles": [45, 35, 65, 30, 90, 100], "speed": 30, "pause_ms": 300, "face": "DETERMINED"},
-    {"angles": [45, 35, 65, 30, 90, 20],  "speed": 40, "pause_ms": 400, "face": "DETERMINED"},
+    {"angles": [45, 60, 80, 45, 90, 100], "speed": 50, "pause_ms": 400, "face": "FOCUSED"},
+    {"angles": [45, 35, 65, 30, 90, 100], "speed": 30, "pause_ms": 300, "face": "FOCUSED"},
+    {"angles": [45, 35, 65, 30, 90, 20],  "speed": 40, "pause_ms": 400, "face": "FOCUSED"},
     {"angles": [45, 75, 90, 60, 90, 20],  "speed": 40, "pause_ms": 300, "face": "HAPPY"},
     {"angles": [90, 75, 90, 60, 90, 20],  "speed": 45, "pause_ms": 500, "face": "HAPPY"}
   ]

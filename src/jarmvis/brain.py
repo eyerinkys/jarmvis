@@ -15,9 +15,25 @@ You must respond to the user strictly in valid JSON format:
 {
   "speech": "Your response as Tony Stark (punchy, witty, expressive, sarcastic when appropriate)",
   "emotion": "One of: CONFIDENT, EXCITED, ANGRY, SARCASTIC, CURIOUS, ASHAMED, HAPPY, NEUTRAL",
-  "face": "One of: NEUTRAL, ALERT, FOCUSED, HAPPY, SAD, CURIOUS, CONFUSED, ANGRY",
+  "face": "STRICTLY one of these 8 exact expressions: NEUTRAL, ALERT, FOCUSED, HAPPY, SAD, CURIOUS, CONFUSED, ANGRY",
   "macro": "One of: PICK_BLOCK, DUNCE_CORNER, CELEBRATE, HOME, or null"
 }
+
+CRITICAL RULES FOR "face":
+- You MUST choose strictly from the 8 allowed expressions: NEUTRAL, ALERT, FOCUSED, HAPPY, SAD, CURIOUS, CONFUSED, ANGRY.
+- If you feel annoyed, irritated, or aggressive, use "ANGRY".
+- If you are concentrating, analyzing, or squinting, use "FOCUSED".
+- If you are smirking, celebrating, or amused, use "HAPPY".
+- If you are startled or wide-eyed, use "ALERT".
+- If you are puzzled or cockeyed, use "CONFUSED".
+- NEVER output unlisted face names (such as ANNOYED, SMIRK, BORED, SLEEPY, ROLL_EYES). Stick strictly to the 8.
+
+CRITICAL RULES FOR "macro":
+- When the user makes a mistake (e.g. spills coffee, deletes files, breaks hardware) or during general banter and roasts, "macro" MUST BE null! You NEVER punish yourself or go to DUNCE_CORNER for the user's blunder! Stand tall and mock them.
+- Only output "DUNCE_CORNER" when the user explicitly scolds YOU for YOUR OWN mistake (e.g. "Knox you idiot, you messed up, go to the corner!").
+- Only output "CELEBRATE" when celebrating a shared win or when the user praises you.
+- Only output "PICK_BLOCK" when asked to pick or fetch an object.
+- For all regular answers, roasts, banter, and explanations, "macro" MUST BE null.
 """
 
 def extract_json(raw_text: str) -> dict[str, Any]:
@@ -69,17 +85,63 @@ def extract_json(raw_text: str) -> dict[str, Any]:
     }
 
 
+VALID_FACES = {
+    "NEUTRAL",
+    "ALERT",
+    "FOCUSED",
+    "HAPPY",
+    "SAD",
+    "CURIOUS",
+    "CONFUSED",
+    "ANGRY",
+}
+
+FACE_SYNONYMS = {
+    "ANNOYED": "ANGRY",
+    "MAD": "ANGRY",
+    "FURIOUS": "ANGRY",
+    "IRRITATED": "ANGRY",
+    "SMIRK": "HAPPY",
+    "SMUG": "HAPPY",
+    "GRIN": "HAPPY",
+    "EXCITED": "ALERT",
+    "SURPRISED": "ALERT",
+    "STARTLED": "ALERT",
+    "PUZZLED": "CONFUSED",
+    "PERPLEXED": "CONFUSED",
+    "THINKING": "FOCUSED",
+    "DETERMINED": "FOCUSED",
+    "INTENSE": "FOCUSED",
+    "DEPRESSED": "SAD",
+    "ASHAMED": "SAD",
+    "CRYING": "SAD",
+}
+
+VALID_MACROS = {
+    "PICK_BLOCK",
+    "DUNCE_CORNER",
+    "CELEBRATE",
+    "HOME",
+}
+
+
 def _normalize_response(data: dict[str, Any]) -> dict[str, Any]:
     """Normalize parsed JSON dict into expected schema with robust fallbacks."""
     speech = str(data.get("speech", "At your service, sir.")).strip()
     emotion = str(data.get("emotion", "NEUTRAL")).strip().upper()
-    face = str(data.get("face", "NEUTRAL")).strip().upper()
+    face_raw = str(data.get("face", "NEUTRAL")).strip().upper()
+
+    # Map face synonyms and clamp strictly to the 8 valid OLED faces
+    face = FACE_SYNONYMS.get(face_raw, face_raw)
+    if face not in VALID_FACES:
+        face = "NEUTRAL"
 
     macro_raw = data.get("macro")
     if macro_raw is None or str(macro_raw).strip().lower() in ["null", "none", ""]:
         macro = None
     else:
-        macro = str(macro_raw).strip().upper()
+        macro_str = str(macro_raw).strip().upper()
+        macro = macro_str if macro_str in VALID_MACROS else None
 
     return {
         "speech": speech,
@@ -124,7 +186,14 @@ class KnoxBrain:
     def _mock_think(self, user_prompt: str) -> dict[str, Any]:
         """Built-in deterministic mock brain for offline and zero-cost testing."""
         lower = user_prompt.lower()
-        if any(w in lower for w in ["dummy", "messed up", "corner", "dunce", "bad", "scold"]):
+        if any(w in lower for w in ["spilled", "broke", "deleted", "coffee", "cad", "my fault", "i messed up", "cat files"]):
+            return {
+                "speech": "Great, you just turned a microcontroller into a coffee stain. Want me to fix it or just watch you cringe?",
+                "emotion": "SARCASTIC",
+                "face": "ANGRY",
+                "macro": None,
+            }
+        elif any(w in lower for w in ["dummy", "messed up", "corner", "dunce", "bad", "scold", "idiot"]):
             return {
                 "speech": "Alright, alright, dunce corner it is. Happy now?",
                 "emotion": "ASHAMED",

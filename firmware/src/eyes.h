@@ -86,6 +86,43 @@ public:
             u8g2.drawDisc(eyeL_x + shift, eyeL_y - 8, 5);
             u8g2.drawDisc(eyeR_x + shift, eyeR_y - 8, 5);
             u8g2.setDrawColor(1);
+        } else if (current_state == "ANGRY") {
+            // Angry sharp slanted eyes
+            u8g2.drawRBox(eyeL_x - eye_w / 2, eyeL_y - eye_h / 2, eye_w, eye_h, 4);
+            u8g2.drawRBox(eyeR_x - eye_w / 2, eyeR_y - eye_h / 2, eye_w, eye_h, 4);
+            u8g2.setDrawColor(0);
+            u8g2.drawTriangle(eyeL_x - eye_w / 2, eyeL_y - eye_h / 2, eyeL_x + eye_w / 2, eyeL_y - eye_h / 2, eyeL_x + eye_w / 2, eyeL_y);
+            u8g2.drawTriangle(eyeR_x - eye_w / 2, eyeR_y - eye_h / 2, eyeR_x + eye_w / 2, eyeR_y - eye_h / 2, eyeR_x - eye_w / 2, eyeR_y);
+            u8g2.drawDisc(eyeL_x + 2, eyeL_y + 2, 4);
+            u8g2.drawDisc(eyeR_x - 2, eyeR_y + 2, 4);
+            u8g2.setDrawColor(1);
+        } else if (current_state == "ANNOYED") {
+            // Unimpressed half-lidded flat gaze / side-eye
+            u8g2.drawRBox(eyeL_x - eye_w / 2, eyeL_y - 2, eye_w, eye_h / 2 + 2, 4);
+            u8g2.drawRBox(eyeR_x - eye_w / 2, eyeR_y - 2, eye_w, eye_h / 2 + 2, 4);
+            // Heavy eyelid brow lines
+            u8g2.drawHLine(eyeL_x - eye_w / 2 - 2, eyeL_y - 3, eye_w + 4);
+            u8g2.drawHLine(eyeR_x - eye_w / 2 - 2, eyeR_y - 3, eye_w + 4);
+            u8g2.setDrawColor(0);
+            u8g2.drawDisc(eyeL_x + 4, eyeL_y + 5, 4);
+            u8g2.drawDisc(eyeR_x + 4, eyeR_y + 5, 4);
+            u8g2.setDrawColor(1);
+        } else if (current_state == "FOCUSED") {
+            // Intense horizontal slit eyes
+            u8g2.drawRBox(eyeL_x - eye_w / 2, eyeL_y - 6, eye_w, 14, 3);
+            u8g2.drawRBox(eyeR_x - eye_w / 2, eyeR_y - 6, eye_w, 14, 3);
+            u8g2.setDrawColor(0);
+            u8g2.drawDisc(eyeL_x + pupil_dx, eyeL_y, 4);
+            u8g2.drawDisc(eyeR_x + pupil_dx, eyeR_y, 4);
+            u8g2.setDrawColor(1);
+        } else if (current_state == "CONFUSED") {
+            // Uneven cockeyed gaze
+            u8g2.drawRBox(eyeL_x - eye_w / 2, eyeL_y - 12, eye_w - 4, eye_h - 4, 4);
+            u8g2.drawRBox(eyeR_x - eye_w / 2, eyeR_y + 2, eye_w + 2, eye_h - 10, 4);
+            u8g2.setDrawColor(0);
+            u8g2.drawDisc(eyeL_x - 3, eyeL_y - 4, 3);
+            u8g2.drawDisc(eyeR_x + 3, eyeR_y + 6, 4);
+            u8g2.setDrawColor(1);
         } else {
             // Standard NEUTRAL rounded rectangular eyes with animated pupils
             u8g2.drawRBox(eyeL_x - eye_w / 2, eyeL_y - eye_h / 2, eye_w, eye_h, 6);

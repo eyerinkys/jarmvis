@@ -111,3 +111,33 @@ def test_groq_llama_successful_response():
         assert mock_urlopen.called
         assert res["speech"] == "Indeed, sir. Llama 3.3 70B is functioning at peak efficiency."
         assert res["emotion"] == "CONFIDENT"
+
+
+def test_user_blunder_does_not_trigger_dunce_corner():
+    brain = JarvisBrain(use_mock=True)
+    res = brain.think("I accidentally spilled coffee on the board and deleted the CAD files")
+    assert res["macro"] is None
+    assert res["face"] == "ANGRY"
+    assert res["emotion"] == "SARCASTIC"
+
+
+def test_normalize_face_synonyms():
+    from jarmvis.brain import _normalize_response
+
+    raw_annoyed = {"speech": "Really?", "emotion": "ANGRY", "face": "ANNOYED", "macro": None}
+    assert _normalize_response(raw_annoyed)["face"] == "ANGRY"
+
+    raw_smirk = {"speech": "Heh.", "emotion": "CONFIDENT", "face": "SMIRK", "macro": None}
+    assert _normalize_response(raw_smirk)["face"] == "HAPPY"
+
+    raw_puzzled = {"speech": "What?", "emotion": "CURIOUS", "face": "PUZZLED", "macro": None}
+    assert _normalize_response(raw_puzzled)["face"] == "CONFUSED"
+
+    raw_determined = {"speech": "Locked in.", "emotion": "FOCUSED", "face": "DETERMINED", "macro": None}
+    assert _normalize_response(raw_determined)["face"] == "FOCUSED"
+
+    raw_invalid = {"speech": "Alien.", "emotion": "CONFIDENT", "face": "ZOMBIE_FACE", "macro": "INVALID_MACRO"}
+    norm = _normalize_response(raw_invalid)
+    assert norm["face"] == "NEUTRAL"
+    assert norm["macro"] is None
+
