@@ -1260,3 +1260,4 @@ void loop() {
 git add firmware/
 git commit -m "feat(firmware): implement ESP32 6-channel LEDC PWM driver and U8g2 animated eyes"
 ```
+
