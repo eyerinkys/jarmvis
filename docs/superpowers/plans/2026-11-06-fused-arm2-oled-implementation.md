@@ -175,3 +175,4 @@ Check:
 - Export high-resolution binary STL to `armschema/printable_parts/Arm_2.stl`.
 - [ ] **Step 2: Run verification script**
 - [ ] **Step 3: Commit final deliverables**
+

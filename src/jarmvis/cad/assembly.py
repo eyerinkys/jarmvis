@@ -67,13 +67,18 @@ def integrate_fused_arm2_into_assembly(
     if "Body" in comp_labels:
         shape_tool.RemoveComponent(comp_labels["Body"])
 
-    # 5. Update assemblies
+    # 5. Remove overlapping duplicate Assembly-modified if present
+    if "Assembly-modified" in comp_labels:
+        shape_tool.RemoveComponent(comp_labels["Assembly-modified"])
+
+    # 6. Update assemblies
     shape_tool.UpdateAssemblies()
 
-    # 6. Write out updated assembly
+    # 7. Write out updated assembly
     os.makedirs(os.path.dirname(os.path.abspath(output_assembly_path)), exist_ok=True)
     writer = STEPCAFControl_Writer()
     writer.Transfer(doc)
     status = writer.Write(output_assembly_path)
     if status != 1:  # IFSelect_RetDone == 1
         raise IOError(f"Failed to write STEP assembly to {output_assembly_path} (status={status})")
+

@@ -12,7 +12,7 @@ from OCP.BRepPrimAPI import BRepPrimAPI_MakeCylinder
 
 
 def fuse_arm2_and_oled(
-    assembly_step_path: str = "Jarmvis_V2.1.step",
+    assembly_step_path: str = "armschema/Jarmvis_V2.1.step",
     output_arm2_path: str | None = None,
     output_stl_path: str | None = None,
 ) -> bd.Solid:
@@ -22,6 +22,13 @@ def fuse_arm2_and_oled(
     0.347mm air gap and dual triangular side gusset brackets, enforces pivot hole
     clearance, and produces a single watertight Solid.
     """
+    # Check fallback paths if given path does not exist
+    if not os.path.exists(assembly_step_path):
+        for candidate in ["armschema/Jarmvis_V2.1.step", "Jarmvis_V2.1.step", "Jarmvis_V2.1.step.bak"]:
+            if os.path.exists(candidate):
+                assembly_step_path = candidate
+                break
+
     doc = TDocStd_Document(TCollection_ExtendedString("XmlOcaf"))
     reader = STEPCAFControl_Reader()
     if reader.ReadFile(assembly_step_path) != 1:
@@ -50,9 +57,27 @@ def fuse_arm2_and_oled(
         name = get_name(lbl)
         comp_labels[name] = lbl
 
-    # If Body is not present in assembly (e.g. after it was already fused),
-    # check backup assembly or original assembly path
+    if "Arm 2" not in comp_labels:
+        raise KeyError("Assembly must contain 'Arm 2' component")
+
+    arm2_lbl = comp_labels["Arm 2"]
+    arm2_loc = XCAFDoc_ShapeTool.GetLocation_s(arm2_lbl)
+    arm2_ref_lbl = TDF_Label()
+    XCAFDoc_ShapeTool.GetReferredShape_s(arm2_lbl, arm2_ref_lbl)
+    arm2_solid = bd.Solid(XCAFDoc_ShapeTool.GetShape_s(arm2_ref_lbl))
+
+    # If Body is not present in assembly, check if Arm 2 is already fused
     if "Body" not in comp_labels:
+        if arm2_solid.volume > 82000:
+            # Already fused!
+            if output_arm2_path:
+                os.makedirs(os.path.dirname(os.path.abspath(output_arm2_path)), exist_ok=True)
+                bd.export_step(arm2_solid, output_arm2_path)
+            if output_stl_path:
+                os.makedirs(os.path.dirname(os.path.abspath(output_stl_path)), exist_ok=True)
+                bd.export_stl(arm2_solid, output_stl_path, tolerance=0.01, angular_tolerance=0.1)
+            return arm2_solid
+
         bak_path = assembly_step_path + ".bak"
         if os.path.exists(bak_path):
             return fuse_arm2_and_oled(bak_path, output_arm2_path, output_stl_path)
@@ -61,21 +86,10 @@ def fuse_arm2_and_oled(
             "It may have already been fused. Provide an original assembly or backup."
         )
 
-    if "Arm 2" not in comp_labels:
-        raise KeyError("Assembly must contain 'Arm 2' component")
-
-    arm2_lbl = comp_labels["Arm 2"]
     body_lbl = comp_labels["Body"]
-
-    arm2_loc = XCAFDoc_ShapeTool.GetLocation_s(arm2_lbl)
     body_loc = XCAFDoc_ShapeTool.GetLocation_s(body_lbl)
-
-    arm2_ref_lbl = TDF_Label()
     body_ref_lbl = TDF_Label()
-    XCAFDoc_ShapeTool.GetReferredShape_s(arm2_lbl, arm2_ref_lbl)
     XCAFDoc_ShapeTool.GetReferredShape_s(body_lbl, body_ref_lbl)
-
-    arm2_solid = bd.Solid(XCAFDoc_ShapeTool.GetShape_s(arm2_ref_lbl))
     trsf = arm2_loc.Inverted().Multiplied(body_loc)
     body_solid = bd.Solid(XCAFDoc_ShapeTool.GetShape_s(body_ref_lbl)).moved(bd.Location(trsf))
 

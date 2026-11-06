@@ -91,3 +91,4 @@ To enforce strict hole clearance, cylindrical and prismatic keep-out solids are 
 4. **Assembly Alignment:**
    - In `Jarmvis_V2.1.step`, the new fused Arm 2 aligns identically with the neighboring servos (`Servo MG996R014`, `Servo Micro004`) and links.
    - Detached duplicate `Body` is removed from the top assembly tree.
+
