@@ -86,20 +86,26 @@ class TTSEngine:
                 "use_speaker_boost": True
             }
         }
-        try:
-            import requests
-            res = requests.post(url, headers=headers, json=payload, timeout=8.0)
-            if res.status_code == 200 and len(res.content) > 100:
-                with open(output_path, "wb") as f:
-                    f.write(res.content)
-                logger.info(f"Synthesized with ElevenLabs (voice={voice_id}, model={model_id})")
-                return True
-            else:
-                logger.warning(f"ElevenLabs TTS returned HTTP {res.status_code}: {res.text[:120]}")
+        for attempt in range(2):
+            try:
+                import requests
+                res = requests.post(url, headers=headers, json=payload, timeout=8.0)
+                if res.status_code == 200 and len(res.content) > 100:
+                    with open(output_path, "wb") as f:
+                        f.write(res.content)
+                    logger.info(f"Synthesized with ElevenLabs (voice={voice_id}, model={model_id})")
+                    return True
+                else:
+                    logger.warning(f"ElevenLabs TTS returned HTTP {res.status_code}: {res.text[:120]}")
+                    return False
+            except Exception as e:
+                if attempt == 0:
+                    import time
+                    time.sleep(0.5)
+                    continue
+                logger.warning(f"ElevenLabs TTS request failed: {e}")
                 return False
-        except Exception as e:
-            logger.warning(f"ElevenLabs TTS request failed: {e}")
-            return False
+        return False
 
     async def _synthesize(
         self,
