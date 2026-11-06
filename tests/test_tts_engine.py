@@ -64,3 +64,15 @@ def test_tts_real_playback_invokes_system_player():
         assert mock_system.called
         # On macOS, os.system should be called with afplay
         assert "afplay" in mock_system.call_args[0][0]
+
+def test_tts_elevenlabs_invocation():
+    tts = TTSEngine(elevenlabs_api_key="xi-mock-key-12345", use_mock=False)
+    fake_res = MagicMock()
+    fake_res.status_code = 200
+    fake_res.content = b"fake mp3 audio data bytes that are definitely longer than one hundred characters in total length to pass verification"
+
+    with patch("requests.post", return_value=fake_res) as mock_post, patch("os.system") as mock_system:
+        tts.speak("Hello from ElevenLabs.", emotion="CONFIDENT")
+        assert mock_post.called
+        assert "api.elevenlabs.io" in mock_post.call_args[0][0]
+        assert mock_system.called

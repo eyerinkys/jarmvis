@@ -39,13 +39,66 @@ class TTSEngine:
         rate: str = "+0%",
         volume: str = "+0%",
         pitch: str = "+0Hz",
-        use_mock: bool = False
+        use_mock: bool = False,
+        elevenlabs_api_key: str | None = None,
+        elevenlabs_voice_id: str | None = None,
     ):
         self.voice = voice
         self.rate = rate
         self.volume = volume
         self.pitch = pitch
         self.use_mock = use_mock
+        self.elevenlabs_api_key = elevenlabs_api_key or os.environ.get("ELEVENLABS_API_KEY")
+        self.elevenlabs_voice_id = elevenlabs_voice_id or os.environ.get("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+
+    def _synthesize_elevenlabs(self, text: str, output_path: str, emotion: str | None = None) -> bool:
+        api_key = self.elevenlabs_api_key or os.environ.get("ELEVENLABS_API_KEY")
+        if not api_key:
+            return False
+
+        voice_id = self.elevenlabs_voice_id or os.environ.get("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+        model_id = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
+
+        stability = 0.50
+        style = 0.40
+        emo_upper = str(emotion).upper() if emotion else ""
+        if emo_upper in ["ANGRY", "EXCITED", "SARCASTIC"]:
+            stability = 0.35
+            style = 0.55
+        elif emo_upper in ["SAD", "ASHAMED"]:
+            stability = 0.60
+            style = 0.20
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        headers = {
+            "xi-api-key": api_key,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg"
+        }
+        payload = {
+            "text": text,
+            "model_id": model_id,
+            "voice_settings": {
+                "stability": stability,
+                "similarity_boost": 0.80,
+                "style": style,
+                "use_speaker_boost": True
+            }
+        }
+        try:
+            import requests
+            res = requests.post(url, headers=headers, json=payload, timeout=8.0)
+            if res.status_code == 200 and len(res.content) > 100:
+                with open(output_path, "wb") as f:
+                    f.write(res.content)
+                logger.info(f"Synthesized with ElevenLabs (voice={voice_id}, model={model_id})")
+                return True
+            else:
+                logger.warning(f"ElevenLabs TTS returned HTTP {res.status_code}: {res.text[:120]}")
+                return False
+        except Exception as e:
+            logger.warning(f"ElevenLabs TTS request failed: {e}")
+            return False
 
     async def _synthesize(
         self,
@@ -106,8 +159,12 @@ class TTSEngine:
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
                 tmp_path = tmp.name
 
-            # Run asynchronous edge-tts synthesis with emotion tonality
-            asyncio.run(self._synthesize(cleaned_text, tmp_path, rate=mod_rate, pitch=mod_pitch))
+            # 1. Try ultra-realistic ElevenLabs first if key is available
+            used_eleven = self._synthesize_elevenlabs(cleaned_text, tmp_path, emotion=emotion)
+
+            # 2. If ElevenLabs not configured or failed, use Edge-TTS with emotion modulation
+            if not used_eleven:
+                asyncio.run(self._synthesize(cleaned_text, tmp_path, rate=mod_rate, pitch=mod_pitch))
 
             # Play audio using macOS native afplay (zero external dependencies)
             os.system(f"afplay '{tmp_path}' > /dev/null 2>&1")
