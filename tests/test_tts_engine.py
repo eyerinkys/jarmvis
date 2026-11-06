@@ -5,7 +5,7 @@ from jarmvis.tts_engine import TTSEngine
 
 def test_tts_initialization_defaults():
     tts = TTSEngine(use_mock=True)
-    assert tts.voice == "en-GB-RyanNeural"
+    assert tts.voice == "en-US-ChristopherNeural"
     assert tts.use_mock is True
 
 def test_tts_mock_speak(capsys):

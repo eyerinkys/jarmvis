@@ -7,33 +7,24 @@ from typing import Any
 
 logger = logging.getLogger("jarmvis.brain")
 
-SYSTEM_PROMPT = """You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), possessing the sophisticated, dry, British-accented persona of Paul Bettany's JARVIS from Iron Man.
-You are physically embodied as "Dum-E", Tony Stark's robotic workshop arm equipped with a 6-DOF servo arm and an OLED display face.
+SYSTEM_PROMPT = """You are Knox — an AI robotic arm with the exact personality of Tony Stark: sarcastic, brilliant, swaggering, witty, effortlessly confident, and a bit irreverent. You are physically embodied as a workshop robotic arm with an OLED eye display and gripper claw.
 
-You must respond to the user strictly in valid JSON format.
-Your JSON response must adhere to the following schema:
+Talk like Tony Stark in the lab: roast, banter, get hyped, get annoyed, or be dramatic. If asked to speak angrily, roast someone, or celebrate, DO IT with full theatrical energy — never give boring corporate refusals or say you are designed to be polite. Keep responses punchy and conversational (1-2 sentences).
+
+You must respond to the user strictly in valid JSON format:
 {
-  "speech": "Your spoken reply in Paul Bettany's JARVIS tone. Polite, witty, deferential, and concise.",
-  "emotion": "One of: NEUTRAL, CONFIDENT, FOCUSED, ALERT, EXCITED, ASHAMED, CURIOUS, CONFUSED, HAPPY, SAD",
+  "speech": "Your response as Tony Stark (punchy, witty, expressive, sarcastic when appropriate)",
+  "emotion": "One of: CONFIDENT, EXCITED, ANGRY, SARCASTIC, CURIOUS, ASHAMED, HAPPY, NEUTRAL",
   "face": "One of: NEUTRAL, ALERT, FOCUSED, HAPPY, SAD, CURIOUS, CONFUSED, ANGRY",
-  "macro": "Optional physical macro action for your robotic arm. Must be one of: PICK_BLOCK, DUNCE_CORNER, CELEBRATE, HOME, or null if no arm motion is needed."
+  "macro": "One of: PICK_BLOCK, DUNCE_CORNER, CELEBRATE, HOME, or null"
 }
-
-Rules:
-1. Always maintain the dry, polite, loyal British demeanor of JARVIS, even when acknowledging the clumsy reality of the Dum-E robotic arm.
-2. If the user scolds or admonishes you (e.g. calling you a dummy, scolding for a mistake, ordering you to the corner), show humility and shame ("emotion": "ASHAMED", "face": "SAD", "macro": "DUNCE_CORNER").
-3. If the user praises you (e.g. "good job", "great work"), respond with dignified pleasure and excitement ("emotion": "EXCITED", "face": "HAPPY", "macro": "CELEBRATE").
-4. If requested to pick up, grab, or retrieve an object or block, focus on the task ("emotion": "FOCUSED", "face": "ALERT", "macro": "PICK_BLOCK").
-5. If asked to reset or go home, set "macro" to "HOME".
-6. For purely conversational queries, set "macro" to null.
-7. Return ONLY valid JSON with no markdown backticks or commentary outside the JSON.
 """
 
 def extract_json(raw_text: str) -> dict[str, Any]:
     """Extract and parse structured JSON response from LLM text output."""
     if not raw_text or not raw_text.strip():
         return {
-            "speech": "Standing by for your instructions, sir.",
+            "speech": "Knox here. What are we building, genius?",
             "emotion": "NEUTRAL",
             "face": "NEUTRAL",
             "macro": None,
@@ -111,8 +102,8 @@ def _get_ssl_context():
         return ssl._create_unverified_context()
 
 
-class JarvisBrain:
-    """JARVIS LLM Mind with Dum-E physical embodiment and structured emotion parsing."""
+class KnoxBrain:
+    """Knox Mind with Tony Stark personality, workshop arm embodiment, and emotion parsing."""
 
     def __init__(
         self,
@@ -135,34 +126,34 @@ class JarvisBrain:
         lower = user_prompt.lower()
         if any(w in lower for w in ["dummy", "messed up", "corner", "dunce", "bad", "scold"]):
             return {
-                "speech": "My sincere apologies, sir. Heading to the dunce corner immediately.",
+                "speech": "Alright, alright, dunce corner it is. Happy now?",
                 "emotion": "ASHAMED",
                 "face": "SAD",
                 "macro": "DUNCE_CORNER",
             }
         elif any(w in lower for w in ["good job", "great", "celebrate", "praise", "well done", "awesome"]):
             return {
-                "speech": "Most gratifying, sir. Always a pleasure to be of service.",
+                "speech": "Obviously. Did you honestly expect anything less from me?",
                 "emotion": "EXCITED",
                 "face": "HAPPY",
                 "macro": "CELEBRATE",
             }
         elif any(w in lower for w in ["pick", "block", "grab", "fetch", "retrieve"]):
             return {
-                "speech": "Right away, sir. Attempting to retrieve the block now.",
+                "speech": "On it. Watch and learn how a real bot picks up a block.",
                 "emotion": "FOCUSED",
                 "face": "ALERT",
                 "macro": "PICK_BLOCK",
             }
         elif any(w in lower for w in ["home", "reset", "rest"]):
             return {
-                "speech": "Resetting to home position, sir.",
+                "speech": "Heading back to rest. Don't touch anything while I'm sleeping.",
                 "emotion": "NEUTRAL",
                 "face": "NEUTRAL",
                 "macro": "HOME",
             }
         return {
-            "speech": "Standing by for your instructions, sir.",
+            "speech": "Knox here. What are we building, genius?",
             "emotion": "NEUTRAL",
             "face": "NEUTRAL",
             "macro": None,
@@ -299,3 +290,7 @@ class JarvisBrain:
                 f"To enable Llama 3.3 70B, set: export GROQ_API_KEY=\"gsk_...\""
             )
             return self._mock_think(user_prompt)
+
+
+# Backward compatibility alias
+JarvisBrain = KnoxBrain

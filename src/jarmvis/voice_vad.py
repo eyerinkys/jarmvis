@@ -14,7 +14,7 @@ class VoiceActivityDetector:
         sample_rate: int = 16000,
         chunk_size: int = 512,
         energy_threshold: float = 0.0005,
-        silence_timeout_chunks: int = 22,
+        silence_timeout_chunks: int = 38,
         pre_buffer_chunks: int = 0,
     ):
         self.on_speech_start = on_speech_start

@@ -6,9 +6,9 @@ from jarmvis.serial_bridge import SerialBridge
 def test_app_voice_interaction_flow(capsys):
     bridge = SerialBridge(dry_run=True)
     app = JarmvisApp(bridge=bridge, use_mock_ai=True)
-    app.handle_voice_prompt("Jarvis, pick up that block")
+    app.handle_voice_prompt("Knox, pick up that block")
     captured = capsys.readouterr().out
-    assert "Attempting to retrieve the block" in captured
+    assert "picks up a block" in captured
     assert "[dry-run:pose]" in captured
     assert "[dry-run:reflex] trigger=THINK" in captured
 

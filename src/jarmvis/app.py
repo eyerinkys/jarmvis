@@ -25,28 +25,28 @@ class _DefaultFallbackBrain:
         lower = user_prompt.lower()
         if "pick" in lower or "block" in lower:
             return {
-                "speech": "Right away, sir. Attempting to retrieve the block now.",
+                "speech": "On it. Watch and learn how a real bot picks up a block.",
                 "emotion": "FOCUSED",
                 "face": "ALERT",
                 "macro": "PICK_BLOCK"
             }
         elif "dunce" in lower or "corner" in lower or "bad" in lower or "messed up" in lower:
             return {
-                "speech": "My sincere apologies, sir. Heading to the dunce corner immediately.",
+                "speech": "Alright, alright, dunce corner it is. Happy now?",
                 "emotion": "ASHAMED",
                 "face": "SAD",
                 "macro": "DUNCE_CORNER"
             }
         elif "great" in lower or "good job" in lower or "celebrate" in lower:
             return {
-                "speech": "Most gratifying, sir. Always a pleasure to be of service.",
+                "speech": "Obviously. Did you honestly expect anything less from me?",
                 "emotion": "EXCITED",
                 "face": "HAPPY",
                 "macro": "CELEBRATE"
             }
         return {
-            "speech": "Standing by for your instructions, sir.",
-            "emotion": "NEUTRAL",
+            "speech": "Knox here. What are we building, genius?",
+            "emotion": "CONFIDENT",
             "face": "NEUTRAL",
             "macro": None
         }
@@ -64,13 +64,13 @@ class JarmvisApp:
         self.bridge = bridge
         self.use_mock_ai = use_mock_ai
 
-        # Initialize Brain (Dependency Injection or dynamic import of JarvisBrain)
+        # Initialize Brain (Dependency Injection or dynamic import of KnoxBrain)
         if brain is not None:
             self.brain = brain
         else:
             try:
-                from jarmvis.brain import JarvisBrain
-                self.brain = JarvisBrain(api_key=api_key, use_mock=use_mock_ai)
+                from jarmvis.brain import KnoxBrain
+                self.brain = KnoxBrain(api_key=api_key, use_mock=use_mock_ai)
             except ImportError:
                 self.brain = _DefaultFallbackBrain(use_mock=use_mock_ai)
 
@@ -88,8 +88,8 @@ class JarmvisApp:
             on_speech_start=self._on_user_started_speaking,
             on_speech_end=self._on_user_finished_speaking,
             energy_threshold=vad_threshold if vad_threshold is not None else 0.0005,
-            silence_timeout_chunks=22,
-            pre_buffer_chunks=4
+            silence_timeout_chunks=38,
+            pre_buffer_chunks=12
         )
 
     def _on_user_started_speaking(self) -> None:
@@ -128,16 +128,17 @@ class JarmvisApp:
         # 2. Query Brain
         response = self.brain.think(cleaned_text)
         speech = response.get("speech", "")
+        emotion = response.get("emotion", "CONFIDENT")
         face = response.get("face", "NEUTRAL")
         macro = response.get("macro", None)
 
-        print(f"jarvis: {speech} [face={face}, macro={macro}]")
+        print(f"knox: {speech} [face={face}, macro={macro}]")
         if face:
             self.bridge.send_face(face)
 
-        # 3. Speak response out loud
+        # 3. Speak response out loud with dynamic emotional modulation
         if speech:
-            self.tts.speak(speech)
+            self.tts.speak(speech, emotion=emotion)
 
         # 4. Trigger physical macro if requested
         if macro:
@@ -154,10 +155,10 @@ class JarmvisApp:
         import time
         import threading
 
-        print("jarmvis voice assistant active")
+        print("knox voice assistant active")
         print("[vad] calibrating ambient room noise...")
         threshold = self.vad.calibrate_noise_floor(duration=0.4, device=device)
-        print(f"[vad] ready (noise threshold: {threshold:.5f}). speak naturally (Ctrl+C to stop)")
+        print(f"[vad] ready (noise threshold: {threshold:.5f}). speak to knox (Ctrl+C to stop)")
 
         self.perk_up()
 
@@ -218,7 +219,7 @@ class JarmvisApp:
             print("\nstopped.")
 
     def run_cli_interactive(self) -> None:
-        print("jarmvis interactive cli (commands: perk, dunce, celebrate, home, quit)")
+        print("knox interactive cli (commands: perk, dunce, celebrate, home, quit)")
 
         self.perk_up()
 

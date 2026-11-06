@@ -28,8 +28,9 @@ def _suppress_output():
 class STTEngine:
     """Apple Silicon Metal accelerated Speech-to-Text using mlx-whisper."""
 
-    def __init__(self, model_name: str = "mlx-community/whisper-tiny", use_mock: bool = False):
-        self.model_name = model_name
+    def __init__(self, model_name: str | None = None, use_mock: bool = False):
+        import os
+        self.model_name = model_name or os.environ.get("STT_MODEL", "mlx-community/whisper-base-mlx")
         self.use_mock = use_mock
 
     def transcribe(self, audio_data: np.ndarray, sample_rate: int = 16000) -> str:
@@ -37,7 +38,7 @@ class STTEngine:
             return ""
 
         if self.use_mock:
-            return "Jarvis, pick up that block on your left."
+            return "Knox, pick up that block on your left."
 
         # Ensure float32 normalized between -1.0 and 1.0
         if audio_data.dtype != np.float32:
