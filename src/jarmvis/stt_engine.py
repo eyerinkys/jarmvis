@@ -28,7 +28,8 @@ class STTEngine:
             import mlx_whisper
             result = mlx_whisper.transcribe(
                 audio_data,
-                path_or_hf_repo=self.model_name
+                path_or_hf_repo=self.model_name,
+                verbose=False
             )
             raw_text = result.get("text", "").strip()
             logger.info(f"MLX-Whisper transcribed: '{raw_text}'")

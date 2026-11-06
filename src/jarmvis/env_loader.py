@@ -25,3 +25,4 @@ def load_dotenv(path: str | None = None) -> None:
                     os.environ[key] = val
     except Exception:
         pass
+

@@ -58,7 +58,8 @@ class JarmvisApp:
         brain: Any = None,
         api_key: str | None = None,
         use_mock_ai: bool = False,
-        macros_file: str = "config/macros.json"
+        macros_file: str = "config/macros.json",
+        vad_threshold: float | None = None,
     ):
         self.bridge = bridge
         self.use_mock_ai = use_mock_ai
@@ -78,22 +79,29 @@ class JarmvisApp:
         self.macros = MacroSequencer(bridge=self.bridge, macros_file=macros_file)
         self.motion = MotionPlanner()
 
+        import queue
+        self.utterance_queue = queue.Queue()
+        self.is_assistant_speaking = False
+
         # Low-latency voice reflex detector
         self.vad = VoiceActivityDetector(
             on_speech_start=self._on_user_started_speaking,
             on_speech_end=self._on_user_finished_speaking,
-            energy_threshold=0.015
+            energy_threshold=vad_threshold if vad_threshold is not None else 0.0005,
+            silence_timeout_chunks=22,
+            pre_buffer_chunks=4
         )
 
     def _on_user_started_speaking(self) -> None:
+        if self.is_assistant_speaking:
+            return
         print("\n[vad] speech detected -> reflex PERK_UP")
         self.perk_up()
 
     def _on_user_finished_speaking(self, audio_buffer: np.ndarray) -> None:
-        print("[stt] transcribing audio...")
-        user_text = self.stt.transcribe(audio_buffer)
-        if user_text.strip():
-            self.handle_voice_prompt(user_text)
+        if self.is_assistant_speaking:
+            return
+        self.utterance_queue.put(audio_buffer)
 
     def perk_up(self) -> None:
         self.bridge.send_reflex("PERK_UP")
@@ -135,7 +143,7 @@ class JarmvisApp:
         if macro:
             self.macros.execute_macro(macro)
 
-    def start_live_voice_listener(self) -> None:
+    def start_live_voice_listener(self, device: int | str | None = None) -> None:
         """Starts real-time hands-free microphone listening loop with MLX-Whisper."""
         try:
             import sounddevice as sd
@@ -143,27 +151,70 @@ class JarmvisApp:
             print("error: sounddevice required for live voice. Install: pip install sounddevice")
             return
 
-        print("jarmvis voice listener started (mlx-whisper + vad)")
-        print("ready. speak to jarvis (Ctrl+C to stop)")
+        import time
+        import threading
+
+        print("jarmvis voice assistant active")
+        print("[vad] calibrating ambient room noise...")
+        threshold = self.vad.calibrate_noise_floor(duration=0.4, device=device)
+        print(f"[vad] ready (noise threshold: {threshold:.5f}). speak naturally (Ctrl+C to stop)")
 
         self.perk_up()
 
+        stop_event = threading.Event()
+
+        def _worker():
+            while not stop_event.is_set():
+                try:
+                    audio_buffer = self.utterance_queue.get(timeout=0.2)
+                except Exception:
+                    continue
+
+                if self.is_assistant_speaking:
+                    continue
+
+                if len(audio_buffer) < int(self.vad.sample_rate * 0.3):
+                    continue
+
+                print("[stt] transcribing audio...")
+                user_text = self.stt.transcribe(audio_buffer)
+                if user_text.strip():
+                    self.is_assistant_speaking = True
+                    try:
+                        self.handle_voice_prompt(user_text)
+                    finally:
+                        time.sleep(0.4)
+                        while not self.utterance_queue.empty():
+                            try:
+                                self.utterance_queue.get_nowait()
+                            except Exception:
+                                break
+                        self.is_assistant_speaking = False
+
+        worker_thread = threading.Thread(target=_worker, daemon=True)
+        worker_thread.start()
+
         def _audio_callback(indata, frames, time_info, status):
+            if self.is_assistant_speaking:
+                return
             if status:
-                logger.warning(f"Audio buffer status: {status}")
-            self.vad.process_audio_chunk(indata.flatten())
+                logger.debug(f"Audio buffer status: {status}")
+            chunk = indata[:, 0].copy() if indata.ndim > 1 else indata.flatten().copy()
+            self.vad.process_audio_chunk(chunk)
 
         try:
             with sd.InputStream(
-                samplerate=16000,
+                samplerate=self.vad.sample_rate,
                 channels=1,
                 dtype="float32",
-                blocksize=512,
-                callback=_audio_callback
+                blocksize=self.vad.chunk_size,
+                callback=_audio_callback,
+                device=device
             ):
                 while True:
                     sd.sleep(500)
         except KeyboardInterrupt:
+            stop_event.set()
             print("\nstopped.")
 
     def run_cli_interactive(self) -> None:
@@ -200,19 +251,36 @@ def main():
     parser.add_argument("--mock-ai", action="store_true", help="Use instant mock brain and TTS for testing")
     parser.add_argument("--cli", action="store_true", help="Use keyboard prompt instead of live microphone")
     parser.add_argument("--api-key", type=str, default=None, help="Groq or Gemini API key")
+    parser.add_argument("--threshold", type=float, default=None, help="VAD energy threshold override (e.g. 0.0003)")
+    parser.add_argument("--device", type=str, default=None, help="Audio input device index or name")
+    parser.add_argument("--list-devices", action="store_true", help="List available audio devices and exit")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose debug logging")
     args = parser.parse_args()
+
+    if args.list_devices:
+        try:
+            import sounddevice as sd
+            print(sd.query_devices())
+        except Exception as e:
+            print(f"Error querying audio devices: {e}")
+        return
 
     log_level = logging.INFO if args.verbose else logging.WARNING
     logging.basicConfig(level=log_level, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     bridge = SerialBridge(port=args.port, dry_run=args.dry_run)
-    app = JarmvisApp(bridge=bridge, api_key=args.api_key, use_mock_ai=args.mock_ai)
+    app = JarmvisApp(
+        bridge=bridge,
+        api_key=args.api_key,
+        use_mock_ai=args.mock_ai,
+        vad_threshold=args.threshold,
+    )
 
     if args.cli:
         app.run_cli_interactive()
     else:
-        app.start_live_voice_listener()
+        device_arg = int(args.device) if args.device and args.device.isdigit() else args.device
+        app.start_live_voice_listener(device=device_arg)
 
 if __name__ == "__main__":
     main()

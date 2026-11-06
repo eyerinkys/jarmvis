@@ -1,3 +1,4 @@
+from collections import deque
 import logging
 from typing import Callable, Optional
 import numpy as np
@@ -12,8 +13,9 @@ class VoiceActivityDetector:
         on_speech_end: Optional[Callable[[np.ndarray], None]] = None,
         sample_rate: int = 16000,
         chunk_size: int = 512,
-        energy_threshold: float = 0.02,
-        silence_timeout_chunks: int = 15,
+        energy_threshold: float = 0.0005,
+        silence_timeout_chunks: int = 22,
+        pre_buffer_chunks: int = 0,
     ):
         self.on_speech_start = on_speech_start
         self.on_speech_end = on_speech_end
@@ -21,11 +23,30 @@ class VoiceActivityDetector:
         self.chunk_size = chunk_size
         self.energy_threshold = energy_threshold
         self.silence_timeout_chunks = silence_timeout_chunks
+        self.pre_buffer_chunks = pre_buffer_chunks
 
         self.is_speaking = False
         self.silence_count = 0
         self.speech_buffer: list[np.ndarray] = []
+        self._pre_buffer = deque(maxlen=max(1, pre_buffer_chunks)) if pre_buffer_chunks > 0 else None
         self._stream = None
+
+    def calibrate_noise_floor(self, duration: float = 0.4, device: Optional[int | str] = None) -> float:
+        """Sample ambient noise for calibration and auto-set threshold."""
+        try:
+            import sounddevice as sd
+            frames = int(duration * self.sample_rate)
+            rec = sd.rec(frames, samplerate=self.sample_rate, channels=1, dtype="float32", device=device)
+            sd.wait()
+            ambient_energy = float(np.mean(rec ** 2))
+            # Set threshold safely above room ambient noise floor (4x noise floor, clamped [0.0002, 0.01])
+            self.energy_threshold = max(0.0002, min(0.01, ambient_energy * 4.0))
+            logger.info(f"Calibrated noise floor: {ambient_energy:.8f}, threshold set to {self.energy_threshold:.6f}")
+            return self.energy_threshold
+        except Exception as e:
+            logger.warning(f"Could not calibrate ambient noise: {e}. Using fallback 0.0005")
+            self.energy_threshold = 0.0005
+            return self.energy_threshold
 
     def process_audio_chunk(self, chunk: np.ndarray) -> bool:
         if len(chunk) == 0:
@@ -44,13 +65,16 @@ class VoiceActivityDetector:
         is_chunk_speech = energy > self.energy_threshold
 
         if is_chunk_speech:
-            self.speech_buffer.append(chunk)
-            self.silence_count = 0
             if not self.is_speaking:
                 self.is_speaking = True
+                self.speech_buffer = []
+                if self._pre_buffer:
+                    self.speech_buffer.extend(list(self._pre_buffer))
                 logger.info("Speech start detected!")
                 if self.on_speech_start:
                     self.on_speech_start()
+            self.speech_buffer.append(chunk)
+            self.silence_count = 0
         elif self.is_speaking:
             self.speech_buffer.append(chunk)
             self.silence_count += 1
@@ -62,6 +86,8 @@ class VoiceActivityDetector:
                     self.on_speech_end(full_utterance)
                 self.speech_buffer = []
                 self.silence_count = 0
+        elif self._pre_buffer is not None:
+            self._pre_buffer.append(chunk)
 
         return self.is_speaking
 

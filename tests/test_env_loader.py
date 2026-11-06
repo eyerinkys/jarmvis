@@ -20,3 +20,4 @@ def test_load_dotenv_custom_path(monkeypatch):
         assert "EMPTY_KEY" not in os.environ
     finally:
         os.remove(tmp_path)
+
