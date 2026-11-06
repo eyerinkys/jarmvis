@@ -1081,20 +1081,10 @@ git commit -m "feat(app): implement end-to-end Jarmvis CLI interactive runner"
 - Input: USB Serial JSON packets (`pose`, `reflex`, `face`)
 - Output: 6-channel 50Hz LEDC PWM to servos + I2C to SSD1306 OLED display
 
-- [ ] **Step 1: Write `firmware/platformio.ini`**
-
-```ini
-[env:esp32dev]
-platform = espressif32
-board = esp32dev
-framework = arduino
-monitor_speed = 115200
-lib_deps =
-    bblanchon/ArduinoJson@^7.0.4
-    olikraus/U8g2@^2.35.19
-```
-
-- [ ] **Step 2: Implement `firmware/src/eyes.h` (Procedural Animated Eyes)**
+- [x] **Step 1: Write `firmware/platformio.ini`**
+- [x] **Step 2: Implement `firmware/src/eyes.h` (Procedural Animated Eyes)**
+- [x] **Step 3: Implement `firmware/src/main.cpp`**
+- [x] **Step 4: Commit firmware files**
 
 ```cpp
 #pragma once
