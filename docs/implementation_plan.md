@@ -802,7 +802,7 @@ git commit -m "feat(tts): implement neural JARVIS British TTS playback via edge-
   - `think(user_prompt: str) -> dict`
     - Returns `{"speech": str, "emotion": str, "face": str, "macro": str | None}`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_brain.py
@@ -824,12 +824,12 @@ def test_parse_scolding_response():
     assert response["face"] == "SAD"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_brain.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.brain')
 
-- [ ] **Step 3: Implement `src/jarmvis/brain.py`**
+- [x] **Step 3: Implement `src/jarmvis/brain.py`**
 
 ```python
 import json
@@ -919,12 +919,12 @@ class JarvisBrain:
             return self.__class__(use_mock=True).think(user_prompt)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_brain.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/jarmvis/brain.py tests/test_brain.py
