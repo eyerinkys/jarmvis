@@ -164,3 +164,4 @@ python3 -m jarmvis.app --port /dev/cu.usbserial-0001
 | **Mac shows "Port not found" or permission denied** | USB Driver or Cable | 1. Ensure your USB cable is **data-capable** (not charge-only).<br>2. Install CH340 or CP2102 driver for macOS if needed.<br>3. Check `ls /dev/cu.*` in Terminal. |
 | **Servo turns in reverse direction** | Mechanical gear orientation | In `firmware/src/main.cpp`, invert the angle for that joint: `writeServoPWM(jointIndex, 180.0 - angle);` |
 | **Arm wobbles or tips over when extending** | Base not anchored | Clamp the base plate to your desk with a G-clamp or mount it to a heavy wood baseboard. |
+
