@@ -359,7 +359,7 @@ git commit -m "feat(motion): add cosine easing, spring overshoot, and idle breat
   - `execute_macro(name: str, step_callback: callable | None = None) -> bool`
   - `save_waypoint(macro_name: str, angles: list[int], speed: int = 40, pause_ms: int = 300) -> None`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_macros.py
@@ -396,12 +396,12 @@ def test_save_new_waypoint(tmp_path):
     assert reloaded.macros["PICK_BLOCK"][0]["angles"] == [45, 60, 80, 45, 90, 100]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python3 -m pytest tests/test_macros.py -v`  
 Expected: FAIL (ModuleNotFoundError: No module named 'jarmvis.macros')
 
-- [ ] **Step 3: Implement `src/jarmvis/macros.py`, `config/macros.json`, and `tools/calibrate.py`**
+- [x] **Step 3: Implement `src/jarmvis/macros.py`, `config/macros.json`, and `tools/calibrate.py`**
 
 Create `config/macros.json`:
 ```json
@@ -559,12 +559,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python3 -m pytest tests/test_macros.py -v`  
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add config/macros.json src/jarmvis/macros.py tools/calibrate.py tests/test_macros.py
