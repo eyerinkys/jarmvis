@@ -14,7 +14,7 @@ from jarmvis.audio_analyzer import AudioAnalyzer
 from jarmvis.gesticulator import Gesticulator
 from jarmvis.playback_engine import CoordinatedPlaybackEngine
 from jarmvis.env_loader import load_dotenv
-from jarmvis.tui import TerminalUI
+from jarmvis.tui import TerminalUI, COLOR_DOOM_GOLD
 from rich.live import Live
 
 load_dotenv()
@@ -65,9 +65,11 @@ class JarmvisApp:
         use_mock_ai: bool = False,
         macros_file: str = "config/macros.json",
         vad_threshold: float | None = None,
+        no_anim: bool = False,
     ):
         self.bridge = bridge
         self.use_mock_ai = use_mock_ai
+        self.no_anim = no_anim
 
         # Initialize Brain (Dependency Injection or dynamic import of KnoxBrain)
         if brain is not None:
@@ -186,6 +188,7 @@ class JarmvisApp:
         import time
         import threading
 
+        self.tui.play_hud_boot(skip=self.no_anim)
         self.tui.print_banner()
         self.tui.print_status("Calibrating ambient room noise...", style="dim white")
         threshold = self.vad.calibrate_noise_floor(duration=0.4, device=device)
@@ -263,6 +266,7 @@ class JarmvisApp:
             self.tui.print_status("Session terminated.", style="dim bright_black")
 
     def run_cli_interactive(self) -> None:
+        self.tui.play_hud_boot(skip=self.no_anim)
         self.tui.print_banner()
         self.tui.print_status("Interactive keyboard mode. Type 'quit' to exit.", style="dim white")
         self.tui.print_status("Commands: perk, dunce, celebrate, home", style="dim bright_black")
@@ -272,7 +276,7 @@ class JarmvisApp:
 
         while True:
             try:
-                line = self.tui.console.input("[bold cyan]> [/]").strip()
+                line = self.tui.console.input(f"[{COLOR_DOOM_GOLD}]knox > [/]").strip()
                 if not line:
                     continue
                 cmd_lower = line.lower()
@@ -298,6 +302,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Run in terminal mock mode without ESP32")
     parser.add_argument("--mock-ai", action="store_true", help="Use instant mock brain and TTS for testing")
     parser.add_argument("--cli", action="store_true", help="Use keyboard prompt instead of live microphone")
+    parser.add_argument("--no-anim", action="store_true", help="Bypass the cinematic boot animation")
     parser.add_argument("--api-key", type=str, default=None, help="Groq or Gemini API key")
     parser.add_argument("--threshold", type=float, default=None, help="VAD energy threshold override (e.g. 0.0003)")
     parser.add_argument("--device", type=str, default=None, help="Audio input device index or name")
@@ -322,6 +327,7 @@ def main():
         api_key=args.api_key,
         use_mock_ai=args.mock_ai,
         vad_threshold=args.threshold,
+        no_anim=args.no_anim,
     )
 
     if args.cli:

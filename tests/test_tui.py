@@ -5,12 +5,12 @@ from jarmvis.tui import TerminalUI
 
 def test_tui_banner():
     buffer = io.StringIO()
-    test_console = Console(file=buffer, color_system=None)
+    test_console = Console(file=buffer, color_system=None, width=100)
     tui = TerminalUI(console_instance=test_console)
+    tui.play_hud_boot(skip=True)
     tui.print_banner()
     output = buffer.getvalue()
-    assert "JARMVIS" in output
-    assert "robotic desk intelligence" in output
+    assert "KNOX" in output
     # Zero emojis
     assert not any(ord(char) > 0x1F000 for char in output)
 
