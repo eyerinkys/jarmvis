@@ -66,3 +66,5 @@ def test_stl_files_exist_and_have_faces(base_name, min_vol, max_vol):
     assert mesh.is_watertight, f"STL is not watertight: {stl_path.name}"
     assert mesh.is_volume, f"STL is not a valid solid volume: {stl_path.name}"
     assert mesh.is_winding_consistent, f"STL winding is inconsistent: {stl_path.name}"
+    assert abs(mesh.bounds[0][2]) < 1e-3, f"STL {stl_path.name} is not rested at Z=0 (z_min={mesh.bounds[0][2]})"
+    assert mesh.bounds[1][2] > 0, f"STL {stl_path.name} has non-positive height"

@@ -13,10 +13,11 @@
 
 ## 1. Executive Notice for the 3D Printing Service & Slicing Technician
 
-### A. Discrete Solid Bodies (Zero Assembly Boolean Fusion)
-All files in `armschema/print_ready/` are **discrete, individual, mathematically valid solid bodies** ready for direct slicing:
+### A. Discrete Solid Bodies (Pre-Oriented on Build Bed)
+All files in `armschema/print_ready/` are **discrete, individual, mathematically valid solid bodies** pre-oriented for direct slicing:
 - Every file has been verified with OpenCASCADE B-Rep analyzers (`BRepCheck_Analyzer.IsValid() == True`).
 - Every STL mesh is **100% Watertight**, manifold, and verified with zero non-manifold edges.
+- **Pre-Oriented at Z=0:** All STL files are already placed flat on the build plate ($Z_{\text{min}} = 0.00\text{ mm}$) resting on their strongest planar face. **DO NOT auto-orient or print upright**; the pre-set orientation aligns perimeters along load axes to prevent layer delamination.
 - **DO NOT slice assembly files together.** Print each component as an individual piece. Robotic arms are assembled post-printing using metal screws and servo horns.
 - No CAD repair fees or redesigns are necessary.
 
