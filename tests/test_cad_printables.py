@@ -63,3 +63,6 @@ def test_stl_files_exist_and_have_faces(base_name, min_vol, max_vol):
     mesh = trimesh.load(str(stl_path))
     assert len(mesh.faces) > 100, f"STL has too few faces: {stl_path.name}"
     assert mesh.volume > 0, f"STL has non-positive volume: {stl_path.name}"
+    assert mesh.is_watertight, f"STL is not watertight: {stl_path.name}"
+    assert mesh.is_volume, f"STL is not a valid solid volume: {stl_path.name}"
+    assert mesh.is_winding_consistent, f"STL winding is inconsistent: {stl_path.name}"

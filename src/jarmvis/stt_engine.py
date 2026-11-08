@@ -3,6 +3,8 @@ import os
 import wave
 import contextlib
 import logging
+import platform
+import sys
 from typing import Optional
 import numpy as np
 import requests
@@ -29,25 +31,58 @@ def _suppress_output():
     except Exception:
         yield
 
+
+class SystemChecker:
+    """Platform and hardware detection for optimized local transcription backends."""
+
+    @staticmethod
+    def is_macos() -> bool:
+        """Returns True if the host operating system is macOS / Darwin."""
+        return platform.system() == "Darwin" or sys.platform == "darwin"
+
+    @staticmethod
+    def is_apple_silicon() -> bool:
+        """Returns True if running on Apple Silicon (ARM64 on Darwin)."""
+        return SystemChecker.is_macos() and platform.machine().lower() in ("arm64", "aarch64")
+
+    @staticmethod
+    def get_preferred_backend() -> str:
+        """Returns the optimal local Whisper backend for this platform:
+        
+        - 'mlx' on macOS (Apple Silicon Metal GPU acceleration)
+        - 'faster-whisper' on Linux, Windows, and other systems (CTranslate2 acceleration)
+        """
+        if SystemChecker.is_macos():
+            return "mlx"
+        return "faster-whisper"
+
+
 class STTEngine:
     """Universal High-Performance Speech-to-Text Engine.
     
-    Supports:
-    1. Groq Cloud Whisper (whisper-large-v3-turbo, ~150ms ultra-low latency, cross-platform)
-    2. local faster-whisper (CTranslate2 accelerated, Linux/macOS/Windows)
-    3. local mlx-whisper (Apple Silicon Metal accelerated)
-    4. local openai-whisper (PyTorch fallback)
+    Transcription Routing:
+    1. macOS (Darwin / Apple Silicon):
+       - Primary: local mlx-whisper (Apple Metal GPU acceleration)
+       - Fallback: local faster-whisper (CTranslate2) or openai-whisper
+    2. Other systems (Linux / Windows / x86):
+       - Primary: local faster-whisper (CTranslate2 CPU/CUDA acceleration, non-Apple version)
+       - Fallback: local openai-whisper (PyTorch)
+       - Does NOT use Groq API key for transcription.
     """
 
     def __init__(
         self,
         model_name: Optional[str] = None,
         use_mock: bool = False,
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        system_checker: Optional[SystemChecker] = None,
+        allow_cloud_fallback: bool = False
     ):
         self.use_mock = use_mock
         self.api_key = api_key if api_key is not None else os.environ.get("GROQ_API_KEY")
-        self.model_name = model_name or os.environ.get("STT_MODEL", "whisper-large-v3-turbo")
+        self.model_name = model_name or os.environ.get("STT_MODEL")
+        self.system_checker = system_checker or SystemChecker()
+        self.allow_cloud_fallback = allow_cloud_fallback
         self._faster_whisper_model = None
 
     def _audio_to_wav_bytes(self, audio_data: np.ndarray, sample_rate: int = 16000) -> bytes:
@@ -63,13 +98,13 @@ class STTEngine:
         return buf.getvalue()
 
     def _transcribe_groq(self, audio_data: np.ndarray, sample_rate: int = 16000) -> Optional[str]:
-        """Calls Groq Cloud Whisper API for near-instant transcription."""
+        """Calls Groq Cloud Whisper API for transcription (optional cloud fallback)."""
         if not self.api_key:
             return None
 
         try:
             wav_bytes = self._audio_to_wav_bytes(audio_data, sample_rate=sample_rate)
-            model = self.model_name if "whisper" in self.model_name.lower() else "whisper-large-v3-turbo"
+            model = self.model_name if (self.model_name and "whisper" in self.model_name.lower()) else "whisper-large-v3-turbo"
             files = {"file": ("utterance.wav", wav_bytes, "audio/wav")}
             data = {"model": model, "response_format": "json"}
             headers = {"Authorization": f"Bearer {self.api_key}"}
@@ -97,7 +132,9 @@ class STTEngine:
         try:
             import faster_whisper
             if self._faster_whisper_model is None:
-                local_model_name = os.environ.get("LOCAL_WHISPER_MODEL", "base.en")
+                local_model_name = self.model_name
+                if not local_model_name or "turbo" in local_model_name.lower():
+                    local_model_name = os.environ.get("LOCAL_WHISPER_MODEL", "base.en")
                 device = os.environ.get("WHISPER_DEVICE", "cpu")
                 compute_type = "int8" if device == "cpu" else "default"
                 try:
@@ -125,10 +162,13 @@ class STTEngine:
         """Runs Apple Silicon Metal mlx-whisper."""
         try:
             import mlx_whisper
+            repo = self.model_name
+            if not repo or "turbo" in repo.lower():
+                repo = os.environ.get("MLX_WHISPER_MODEL", "mlx-community/whisper-base-mlx")
             with _suppress_output():
                 result = mlx_whisper.transcribe(
                     audio_data,
-                    path_or_hf_repo=self.model_name or "mlx-community/whisper-base-mlx",
+                    path_or_hf_repo=repo,
                     verbose=False
                 )
             text = result.get("text", "").strip()
@@ -142,8 +182,11 @@ class STTEngine:
         """Runs standard OpenAI whisper."""
         try:
             import whisper
+            model_name = self.model_name
+            if not model_name or "turbo" in model_name.lower():
+                model_name = os.environ.get("LOCAL_WHISPER_MODEL", "base.en")
             with _suppress_output():
-                model = whisper.load_model("base.en")
+                model = whisper.load_model(model_name)
                 result = model.transcribe(audio_data)
             text = result.get("text", "").strip()
             logger.info(f"openai-whisper transcribed: '{text}'")
@@ -153,7 +196,7 @@ class STTEngine:
             return None
 
     def transcribe(self, audio_data: np.ndarray, sample_rate: int = 16000) -> str:
-        """Transcribes audio chunk to text using the highest-priority available backend."""
+        """Transcribes audio chunk to text using the platform-optimized local Whisper backend."""
         if audio_data is None or len(audio_data) == 0:
             return ""
 
@@ -167,26 +210,41 @@ class STTEngine:
         if max_val > 1.0:
             audio_data = audio_data / max_val
 
-        # 1. Cloud Groq Whisper (ultra-low latency, cross-platform)
-        if self.api_key:
-            groq_result = self._transcribe_groq(audio_data, sample_rate=sample_rate)
-            if groq_result is not None:
-                return groq_result
+        # 1. macOS (Apple Darwin): Prioritize Apple Silicon Metal mlx_whisper
+        if self.system_checker.is_macos():
+            mlx_res = self._transcribe_mlx(audio_data)
+            if mlx_res is not None:
+                return mlx_res
 
-        # 2. Local faster-whisper (Linux / Mac / Windows CTranslate2)
-        fw_result = self._transcribe_faster_whisper(audio_data)
-        if fw_result is not None:
-            return fw_result
+            # Fallback to faster-whisper if mlx is unavailable
+            fw_res = self._transcribe_faster_whisper(audio_data)
+            if fw_res is not None:
+                return fw_res
 
-        # 3. Local mlx-whisper (Apple Silicon Metal)
-        mlx_result = self._transcribe_mlx(audio_data)
-        if mlx_result is not None:
-            return mlx_result
+            # Fallback to standard PyTorch whisper
+            whisper_res = self._transcribe_openai_whisper(audio_data)
+            if whisper_res is not None:
+                return whisper_res
 
-        # 4. Standard PyTorch whisper fallback
-        whisper_result = self._transcribe_openai_whisper(audio_data)
-        if whisper_result is not None:
-            return whisper_result
+        # 2. Other systems (Linux / Windows / etc.):
+        # Use local Whisper (the non-Apple version: faster-whisper).
+        # We do NOT use the Groq API key for transcription.
+        else:
+            fw_res = self._transcribe_faster_whisper(audio_data)
+            if fw_res is not None:
+                return fw_res
 
-        logger.error("No Speech-to-Text backend succeeded (Groq API, faster-whisper, mlx-whisper, openai-whisper all unavailable).")
+            whisper_res = self._transcribe_openai_whisper(audio_data)
+            if whisper_res is not None:
+                return whisper_res
+
+        # 3. Optional emergency Cloud Groq fallback (ONLY if explicitly enabled)
+        if self.allow_cloud_fallback and self.api_key:
+            groq_res = self._transcribe_groq(audio_data, sample_rate=sample_rate)
+            if groq_res is not None:
+                return groq_res
+
+        logger.error(
+            "No Speech-to-Text backend succeeded (mlx-whisper, faster-whisper, openai-whisper all unavailable)."
+        )
         return ""
