@@ -3,10 +3,10 @@
 **Project:** Jarmvis 5-DOF + Gripper Robotic Arm  
 **Specification Level:** V2.1 Production-Ready Release  
 **Target Manufacturing Process:** FDM 3D Printing  
-**Recommended Materials:** PLA+ / Tough PLA / PETG  
+**Recommended Materials:** Standard PLA / PLA+ / PETG (Standard PLA is fully approved & provides highest rigidity)  
 **Total Unique Parts:** 10  
 **Total Printed Pieces:** 14  
-**Estimated Sliced Weight:** ~245 g  
+**Estimated Sliced Weight:** ~240 g (@ 20-25% infill, 4 walls)  
 **Estimated Filament Cost:** ₹2,100 (@ ~₹8.5/g)  
 
 ---
@@ -35,16 +35,16 @@ To ensure high mechanical strength, dimensional precision, and zero layer delami
 
 | # | Part Filename | Component Name | Qty | Layer Height | Infill | Perimeters (Walls) | Supports | Print Orientation & Strength Directives |
 | :-: | :--- | :--- | :-: | :---: | :---: | :---: | :---: | :--- |
-| **01** | `01_circular_base_Circular_Base` | Circular Base | **1** | 0.20 mm | 30% | 4 Walls | **None** | Flat turntable base circle flat against print bed. Outer lip $100\text{ mm}$ mates with waist. |
-| **02** | `02_rotating_waist_Rotating_Waist` | Rotating Waist | **1** | 0.20 mm | 35% | 4 Walls | Tree | Turntable deck flat on bed. Tree supports under overhanging shoulder servo bracket. |
-| **03** | `03_arm_1_shoulder_Arm_1_Shoulder` | Arm 1 (Shoulder Beam) | **1** | 0.20 mm | 40% | 5 Walls | Tree | **CRITICAL: Print flat on its side.** Perimeters must run lengthwise from shoulder to elbow to resist cantilever bending moment without layer delamination. |
-| **04** | `04_arm_2_elbow_Arm_2_Elbow` | Arm 2 (Elbow Forearm) | **1** | 0.20 mm | 35% | 4 Walls | Tree | **Print flat on its side.** Tree supports under servo pocket. Lengthwise perimeters prevent shear. |
-| **05** | `05_arm_3_wrist_tilt_Arm_3_Wrist_Tilt` | Arm 3 (Wrist Tilt) | **1** | 0.20 mm | 30% | 4 Walls | Tree | Orient flat on bracket face to minimize support volume. |
-| **06** | `06_gripper_base_Gripper_Base` | Gripper Base Frame | **1** | 0.20 mm | 30% | 4 Walls | Tree | Flat face on bed; tree supports for micro-servo cavity. |
-| **07** | `07_gear_arm_1_Gear_Arm_1` | Gear Arm 1 (Driven Gear) | **1** | **0.16 mm** | 40% | 4 Walls | **None** | Flat side on bed with horn pocket facing up. 0.16mm layer height ensures crisp involute tooth profile. |
-| **08** | `08_gear_arm_2_Gear_Arm_2` | Gear Arm 2 (Meshed Gear) | **1** | **0.16 mm** | 40% | 4 Walls | **None** | Flat side on bed. 0.16mm layer height ensures perfect conjugate gear meshing without binding. |
-| **09** | `09_claw_finger_Claw_Finger` | Claw Finger (Grip) | **2** | 0.20 mm | 40% | 4 Walls | **None** | Flat side on bed. **Print 2 identical copies.** |
-| **10** | `10_linkage_rod_Linkage_Rod` | Linkage Rod | **4** | 0.20 mm | 50% | 4 Walls | **None** | Flat side on bed. Continuous perimeters wrap around both eyelets for $>150\text{ kg}$ tensile rating. **Print 4 identical copies.** |
+| **01** | `01_circular_base_Circular_Base` | Circular Base | **1** | 0.20 mm | 20% | 4 Walls | **None** | Flat turntable base circle flat against print bed. Outer lip $100\text{ mm}$ mates with waist. |
+| **02** | `02_rotating_waist_Rotating_Waist` | Rotating Waist | **1** | 0.20 mm | 25% | 4 Walls | Tree | Turntable deck flat on bed. Tree supports under overhanging shoulder servo bracket. |
+| **03** | `03_arm_1_shoulder_Arm_1_Shoulder` | Arm 1 (Shoulder Beam) | **1** | 0.20 mm | 25% | 4-5 Walls | Tree | **CRITICAL: Print flat on its side.** Lengthwise perimeters carry 85%+ of bending moments. |
+| **04** | `04_arm_2_elbow_Arm_2_Elbow` | Arm 2 (Elbow Forearm) | **1** | 0.20 mm | 20% | 4 Walls | Tree | **Print flat on its side.** Tree supports under servo pocket. Lengthwise perimeters prevent shear. |
+| **05** | `05_arm_3_wrist_tilt_Arm_3_Wrist_Tilt` | Arm 3 (Wrist Tilt) | **1** | 0.20 mm | 20% | 4 Walls | Tree | Orient flat on bracket face to minimize support volume. |
+| **06** | `06_gripper_base_Gripper_Base` | Gripper Base Frame | **1** | 0.20 mm | 20% | 4 Walls | Tree | Flat face on bed; tree supports for micro-servo cavity. |
+| **07** | `07_gear_arm_1_Gear_Arm_1` | Gear Arm 1 (Driven Gear) | **1** | **0.16 mm** | 25% | 4 Walls | **None** | Flat side on bed with horn pocket facing up. 4 walls make teeth 100% solid. |
+| **08** | `08_gear_arm_2_Gear_Arm_2` | Gear Arm 2 (Meshed Gear) | **1** | **0.16 mm** | 25% | 4 Walls | **None** | Flat side on bed. 4 walls make teeth 100% solid. |
+| **09** | `09_claw_finger_Claw_Finger` | Claw Finger (Grip) | **2** | 0.20 mm | 25% | 4 Walls | **None** | Flat side on bed. 4 walls make narrow finger 100% solid. **Print 2 identical copies.** |
+| **10** | `10_linkage_rod_Linkage_Rod` | Linkage Rod | **4** | 0.20 mm | 25% | 4 Walls | **None** | Flat side on bed. 4 walls make narrow 4mm rod 100% solid. **Print 4 identical copies.** |
 
 **Total Components to Print:** **14 individual pieces**  
 **Recommended Infill Pattern:** Gyroid or Cubic (uniform 3D shear strength).  
