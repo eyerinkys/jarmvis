@@ -70,6 +70,7 @@ class JarmvisApp:
         self.bridge = bridge
         self.use_mock_ai = use_mock_ai
         self.no_anim = no_anim
+        self.vad_threshold = vad_threshold
 
         # Initialize Brain (Dependency Injection or dynamic import of KnoxBrain)
         if brain is not None:
@@ -82,7 +83,7 @@ class JarmvisApp:
                 self.brain = _DefaultFallbackBrain(use_mock=use_mock_ai)
 
         self.tts = TTSEngine(use_mock=use_mock_ai)
-        self.stt = STTEngine(use_mock=use_mock_ai)
+        self.stt = STTEngine(use_mock=use_mock_ai, api_key=api_key)
         self.macros = MacroSequencer(bridge=self.bridge, macros_file=macros_file)
         self.motion = MotionPlanner()
         self.audio_analyzer = AudioAnalyzer(fps=50)
@@ -163,6 +164,17 @@ class JarmvisApp:
                         trajectory=trajectory,
                         blocking=True,
                     )
+                except Exception as e:
+                    logger.error(f"Speech gesticulation failed: {e}. Falling back to standard playback.")
+                    try:
+                        self.playback.play_with_gestures(
+                            audio_path=audio_path,
+                            trajectory=[],
+                            blocking=True,
+                        )
+                    except Exception as e2:
+                        logger.error(f"Fallback audio playback failed: {e2}. Falling back to TTS speak.")
+                        self.tts.speak(speech, emotion=emotion)
                 finally:
                     import os
                     if os.path.exists(audio_path):
@@ -190,9 +202,15 @@ class JarmvisApp:
 
         self.tui.play_hud_boot(skip=self.no_anim)
         self.tui.print_banner()
-        self.tui.print_status("Calibrating ambient room noise...", style="dim white")
-        threshold = self.vad.calibrate_noise_floor(duration=0.4, device=device)
-        self.tui.print_status(f"Ready. Listening on microphone (threshold: {threshold:.5f}).", style="dim cyan")
+
+        if self.vad_threshold is not None:
+            threshold = self.vad_threshold
+            self.vad.energy_threshold = threshold
+            self.tui.print_status(f"Ready. Listening on microphone (manual threshold: {threshold:.5f}).", style="dim cyan")
+        else:
+            self.tui.print_status("Calibrating ambient room noise...", style="dim white")
+            threshold = self.vad.calibrate_noise_floor(duration=0.4, device=device)
+            self.tui.print_status(f"Ready. Listening on microphone (threshold: {threshold:.5f}).", style="dim cyan")
         self.tui.console.print()
 
         self.perk_up()
@@ -224,6 +242,11 @@ class JarmvisApp:
                     
                     if user_text.strip():
                         self.handle_voice_prompt(user_text)
+                    else:
+                        self.tui.print_status("No speech recognized. Try speaking closer to the microphone.", style="dim yellow")
+                except Exception as e:
+                    logger.error(f"Error handling voice prompt: {e}", exc_info=True)
+                    self.tui.print_status(f"Error processing prompt: {e}", style="bold red")
                 finally:
                     time.sleep(0.4)
                     while not self.utterance_queue.empty():

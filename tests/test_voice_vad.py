@@ -80,3 +80,25 @@ def test_start_listening_stream_failure_handling():
         started = vad.start_listening_stream()
         assert started is False
         assert vad._stream is None
+
+def test_vad_max_speech_duration_cutoff():
+    on_start = MagicMock()
+    on_end = MagicMock()
+    # 5 chunks max duration
+    vad = VoiceActivityDetector(
+        on_speech_start=on_start,
+        on_speech_end=on_end,
+        energy_threshold=0.01,
+        max_speech_duration_s=(5 * 512 / 16000)
+    )
+
+    loud_speech = np.ones(512, dtype=np.float32) * 0.2
+    for _ in range(5):
+        vad.process_audio_chunk(loud_speech)
+
+    assert on_start.called
+    assert on_end.called
+    assert vad.is_speaking is False
+    audio_recorded = on_end.call_args[0][0]
+    assert len(audio_recorded) == 512 * 5
+

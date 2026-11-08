@@ -1,12 +1,67 @@
 import logging
 import os
+import shutil
 import subprocess
+import sys
 import threading
 import time
 from typing import Callable
 from jarmvis.serial_bridge import SerialBridge
 
 logger = logging.getLogger("jarmvis.playback")
+
+
+def get_audio_play_command(audio_path: str) -> list[str] | None:
+    """Returns platform-appropriate command list to play an audio file, or None if no player found."""
+    # macOS native player
+    if sys.platform == "darwin" and shutil.which("afplay"):
+        return ["afplay", audio_path]
+
+    # Linux / Unix / Cross-platform CLI players:
+    # 1. mpv: ultra-low latency, handles all formats (mp3, wav, etc.)
+    if shutil.which("mpv"):
+        return ["mpv", "--no-video", "--really-quiet", audio_path]
+
+    # 2. ffplay: handles all formats
+    if shutil.which("ffplay"):
+        return ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", audio_path]
+
+    # 3. pw-play: PipeWire native
+    if shutil.which("pw-play"):
+        return ["pw-play", audio_path]
+
+    # 4. paplay: PulseAudio (best for wav)
+    if shutil.which("paplay") and audio_path.lower().endswith(".wav"):
+        return ["paplay", audio_path]
+
+    # 5. aplay: ALSA (wav only)
+    if shutil.which("aplay") and audio_path.lower().endswith(".wav"):
+        return ["aplay", "-q", audio_path]
+
+    # 6. Fallback to afplay if on path
+    if shutil.which("afplay"):
+        return ["afplay", audio_path]
+
+    return None
+
+
+def play_audio_process(audio_path: str) -> subprocess.Popen | None:
+    """Spawns an audio playback subprocess for non-blocking execution."""
+    if not audio_path or not os.path.exists(audio_path):
+        return None
+    cmd = get_audio_play_command(audio_path)
+    if not cmd:
+        logger.warning(f"No suitable audio player found to play {audio_path}")
+        return None
+    try:
+        return subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to start audio playback via {' '.join(cmd)}: {e}")
+        return None
 
 
 class CoordinatedPlaybackEngine:
@@ -30,15 +85,7 @@ class CoordinatedPlaybackEngine:
 
         audio_proc = None
         if audio_path and os.path.exists(audio_path):
-            try:
-                # Use macOS afplay for native, zero-latency, non-blocking playback
-                audio_proc = subprocess.Popen(
-                    ["afplay", audio_path],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to start audio playback via afplay: {e}")
+            audio_proc = play_audio_process(audio_path)
 
         try:
             if trajectory:

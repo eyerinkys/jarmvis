@@ -2,8 +2,10 @@ import asyncio
 import logging
 import os
 import re
+import shutil
 import tempfile
 from typing import Callable
+from jarmvis.playback_engine import play_audio_process
 
 logger = logging.getLogger("jarmvis.tts")
 
@@ -212,7 +214,11 @@ class TTSEngine:
         tmp_path = self.synthesize_to_file(cleaned_text, emotion=emotion)
         try:
             if tmp_path and os.path.exists(tmp_path):
-                os.system(f"afplay '{tmp_path}' > /dev/null 2>&1")
+                proc = play_audio_process(tmp_path)
+                if proc is not None:
+                    proc.wait()
+                else:
+                    raise RuntimeError("No suitable audio player found on system")
             else:
                 raise RuntimeError("Audio synthesis returned no file")
         except Exception as e:
@@ -220,7 +226,12 @@ class TTSEngine:
             print(f"[tts:fallback] text=\"{cleaned_text}\"")
             try:
                 safe_text = _clean_tts_text(cleaned_text).replace('"', '\\"').replace("'", "\\'")
-                os.system(f'say -v Samantha "{safe_text}" > /dev/null 2>&1 || say "{safe_text}" > /dev/null 2>&1')
+                if shutil.which("say"):
+                    os.system(f'say -v Samantha "{safe_text}" > /dev/null 2>&1 || say "{safe_text}" > /dev/null 2>&1')
+                elif shutil.which("spd-say"):
+                    os.system(f'spd-say "{safe_text}" > /dev/null 2>&1')
+                elif shutil.which("espeak"):
+                    os.system(f'espeak "{safe_text}" > /dev/null 2>&1')
             except Exception:
                 pass
         finally:

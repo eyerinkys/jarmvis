@@ -16,6 +16,7 @@ class VoiceActivityDetector:
         energy_threshold: float = 0.0005,
         silence_timeout_chunks: int = 38,
         pre_buffer_chunks: int = 0,
+        max_speech_duration_s: float = 12.0,
     ):
         self.on_speech_start = on_speech_start
         self.on_speech_end = on_speech_end
@@ -24,6 +25,7 @@ class VoiceActivityDetector:
         self.energy_threshold = energy_threshold
         self.silence_timeout_chunks = silence_timeout_chunks
         self.pre_buffer_chunks = pre_buffer_chunks
+        self.max_speech_chunks = int(max_speech_duration_s * sample_rate / chunk_size)
 
         self.is_speaking = False
         self.silence_count = 0
@@ -39,8 +41,8 @@ class VoiceActivityDetector:
             rec = sd.rec(frames, samplerate=self.sample_rate, channels=1, dtype="float32", device=device)
             sd.wait()
             ambient_energy = float(np.mean(rec ** 2))
-            # Set threshold safely above room ambient noise floor (4x noise floor, clamped [0.0002, 0.01])
-            self.energy_threshold = max(0.0002, min(0.01, ambient_energy * 4.0))
+            # Set threshold safely above room ambient noise floor (3.5x noise floor, clamped [0.0001, 0.003])
+            self.energy_threshold = max(0.0001, min(0.003, ambient_energy * 3.5))
             logger.info(f"Calibrated noise floor: {ambient_energy:.8f}, threshold set to {self.energy_threshold:.6f}")
             return self.energy_threshold
         except Exception as e:
@@ -75,6 +77,15 @@ class VoiceActivityDetector:
                     self.on_speech_start()
             self.speech_buffer.append(chunk)
             self.silence_count = 0
+            # Safety cutoff: prevent indefinite listening if ambient noise persists
+            if len(self.speech_buffer) >= self.max_speech_chunks:
+                self.is_speaking = False
+                logger.info("Speech max duration reached, finalizing utterance.")
+                if self.on_speech_end and self.speech_buffer:
+                    full_utterance = np.concatenate(self.speech_buffer)
+                    self.on_speech_end(full_utterance)
+                self.speech_buffer = []
+                self.silence_count = 0
         elif self.is_speaking:
             self.speech_buffer.append(chunk)
             self.silence_count += 1

@@ -60,12 +60,13 @@ def test_tts_real_playback_invokes_system_player(monkeypatch):
     monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     tts = TTSEngine(use_mock=False, elevenlabs_api_key="")
     
-    with patch("edge_tts.Communicate.save") as mock_save, patch("os.system") as mock_system:
+    with patch("edge_tts.Communicate.save") as mock_save, patch("jarmvis.tts_engine.play_audio_process") as mock_play:
+        mock_proc = MagicMock()
+        mock_play.return_value = mock_proc
         tts.speak("Testing audio player integration.")
         assert mock_save.called
-        assert mock_system.called
-        # On macOS, os.system should be called with afplay
-        assert "afplay" in mock_system.call_args[0][0]
+        assert mock_play.called
+        assert mock_proc.wait.called
 
 def test_tts_elevenlabs_invocation():
     tts = TTSEngine(elevenlabs_api_key="xi-mock-key-12345", use_mock=False)
@@ -73,8 +74,11 @@ def test_tts_elevenlabs_invocation():
     fake_res.status_code = 200
     fake_res.content = b"fake mp3 audio data bytes that are definitely longer than one hundred characters in total length to pass verification"
 
-    with patch("requests.post", return_value=fake_res) as mock_post, patch("os.system") as mock_system:
+    with patch("requests.post", return_value=fake_res) as mock_post, patch("jarmvis.tts_engine.play_audio_process") as mock_play:
+        mock_proc = MagicMock()
+        mock_play.return_value = mock_proc
         tts.speak("Hello from ElevenLabs.", emotion="CONFIDENT")
         assert mock_post.called
         assert "api.elevenlabs.io" in mock_post.call_args[0][0]
-        assert mock_system.called
+        assert mock_play.called
+        assert mock_proc.wait.called

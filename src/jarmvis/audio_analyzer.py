@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import subprocess
 import tempfile
 import wave
@@ -100,47 +101,89 @@ class AudioAnalyzer:
         )
 
     def extract_features_from_file(self, file_path: str) -> AudioFeatures:
-        """Extracts features from an audio file (.wav, .mp3, etc.)."""
+        """Extracts features from an audio file (.wav, .mp3, etc.) cross-platform."""
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Audio file not found: {file_path}")
 
-        wav_path = file_path
-        cleanup_wav = False
-
-        # If not a standard WAV, convert using macOS afconvert or ffmpeg
-        if not file_path.lower().endswith(".wav"):
-            tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-            tmp_path = tmp.name
-            tmp.close()
-            cmd = ["afconvert", "-f", "WAVE", "-d", "LEI16", "-c", "1", "-r", "16000", file_path, tmp_path]
+        # 1. If standard WAV, attempt fast standard library wave reading
+        if file_path.lower().endswith(".wav"):
             try:
-                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                wav_path = tmp_path
-                cleanup_wav = True
+                with wave.open(file_path, "rb") as wf:
+                    channels = wf.getnchannels()
+                    sample_width = wf.getsampwidth()
+                    rate = wf.getframerate()
+                    num_frames = wf.getnframes()
+                    raw_bytes = wf.readframes(num_frames)
+
+                dtype_map = {1: np.uint8, 2: np.int16, 4: np.int32}
+                dtype = dtype_map.get(sample_width, np.int16)
+                data = np.frombuffer(raw_bytes, dtype=dtype)
+                if channels > 1:
+                    data = data.reshape(-1, channels)
+                return self.extract_features_from_array(data, sample_rate=rate)
             except Exception as e:
-                logger.warning(f"afconvert failed: {e}. Trying fallback decoding.")
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-                wav_path = file_path
+                logger.debug(f"Direct wave reading failed ({e}). Falling back to multi-format decoders.")
 
+        # 2. Universal decoding via PyAV (supports MP3, AAC, FLAC, OGG, WAV in-memory)
         try:
-            with wave.open(wav_path, "rb") as wf:
-                channels = wf.getnchannels()
-                sample_width = wf.getsampwidth()
-                rate = wf.getframerate()
-                num_frames = wf.getnframes()
-                raw_bytes = wf.readframes(num_frames)
+            import av
+            container = av.open(file_path)
+            if container.streams.audio:
+                stream = container.streams.audio[0]
+                resampler = av.AudioResampler(format="s16", layout="mono", rate=16000)
+                frames = []
+                for frame in container.decode(stream):
+                    for r in resampler.resample(frame):
+                        frames.append(r.to_ndarray())
+                container.close()
+                if frames:
+                    audio_data = np.concatenate(frames, axis=1).reshape(-1)
+                    return self.extract_features_from_array(audio_data, sample_rate=16000)
+            else:
+                container.close()
+        except Exception as e:
+            logger.debug(f"PyAV audio decoding failed: {e}. Trying CLI converter fallback.")
 
-            dtype_map = {1: np.uint8, 2: np.int16, 4: np.int32}
-            dtype = dtype_map.get(sample_width, np.int16)
-            data = np.frombuffer(raw_bytes, dtype=dtype)
-            if channels > 1:
-                data = data.reshape(-1, channels)
-            return self.extract_features_from_array(data, sample_rate=rate)
+        # 3. CLI conversion fallback (ffmpeg on Linux/Windows/macOS or afconvert on macOS)
+        tmp_wav = None
+        try:
+            if shutil.which("ffmpeg"):
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_wav = tmp.name
+                cmd = ["ffmpeg", "-y", "-i", file_path, "-ac", "1", "-ar", "16000", "-f", "wav", tmp_wav]
+                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                with wave.open(tmp_wav, "rb") as wf:
+                    rate = wf.getframerate()
+                    num_frames = wf.getnframes()
+                    raw_bytes = wf.readframes(num_frames)
+                data = np.frombuffer(raw_bytes, dtype=np.int16)
+                return self.extract_features_from_array(data, sample_rate=rate)
+            elif shutil.which("afconvert"):
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_wav = tmp.name
+                cmd = ["afconvert", "-f", "WAVE", "-d", "LEI16", "-c", "1", "-r", "16000", file_path, tmp_wav]
+                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                with wave.open(tmp_wav, "rb") as wf:
+                    rate = wf.getframerate()
+                    num_frames = wf.getnframes()
+                    raw_bytes = wf.readframes(num_frames)
+                data = np.frombuffer(raw_bytes, dtype=np.int16)
+                return self.extract_features_from_array(data, sample_rate=rate)
+        except Exception as e:
+            logger.warning(f"CLI audio converter fallback failed: {e}")
         finally:
-            if cleanup_wav and os.path.exists(wav_path):
+            if tmp_wav and os.path.exists(tmp_wav):
                 try:
-                    os.remove(wav_path)
+                    os.remove(tmp_wav)
                 except OSError:
                     pass
+
+        # 4. Graceful fallback on complete failure to decode (never crash caller thread)
+        logger.warning(f"Could not decode audio from {file_path}. Returning empty audio features.")
+        return AudioFeatures(
+            rms_envelope=np.array([], dtype=np.float32),
+            beat_onsets=np.array([], dtype=np.float32),
+            duration_sec=0.0,
+            fps=self.fps,
+        )
 
